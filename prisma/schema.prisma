@@ -17,8 +17,9 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts Account[]
-  sessions Session[]
+  accounts        Account[]
+  sessions        Session[]
+  whatsappAccount WhatsAppAccount?
 }
 
 model Account {
@@ -54,4 +55,38 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+model WhatsAppAccount {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  phoneNumber     String    @unique
+  phoneNumberId   String
+  wabaId          String
+  displayName     String?
+  connectedAt     DateTime  @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([userId])
+}
+
+model Message {
+  id                String   @id @default(cuid())
+  whatsappAccountId String
+  waMessageId       String   @unique
+  direction         String
+  fromNumber        String
+  toNumber          String
+  type              String
+  content           String?  @db.Text
+  mediaUrl          String?
+  mediaId           String?
+  rawPayload        Json
+  createdAt         DateTime @default(now())
+
+  account WhatsAppAccount @relation(fields: [whatsappAccountId], references: [id], onDelete: Cascade)
+
+  @@index([whatsappAccountId, createdAt])
+  @@index([fromNumber])
 }
