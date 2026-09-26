@@ -19,6 +19,7 @@ model User {
 
   accounts        Account[]
   sessions        Session[]
+  baseCurrency  String  @default("USD")
   whatsappAccount WhatsAppAccount?
 }
 
@@ -65,8 +66,10 @@ model WhatsAppAccount {
   displayName     String?
   connectedAt     DateTime  @default(now())
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages Message[]
+  customers Customer[]
+  orders   Order[]
 
   @@index([userId])
 }
@@ -83,10 +86,65 @@ model Message {
   mediaUrl          String?
   mediaId           String?
   rawPayload        Json
+  extractedData     Json?
   createdAt         DateTime @default(now())
 
   account WhatsAppAccount @relation(fields: [whatsappAccountId], references: [id], onDelete: Cascade)
 
   @@index([whatsappAccountId, createdAt])
   @@index([fromNumber])
+}
+model Customer {
+  id                String   @id @default(cuid())
+  whatsappAccountId String
+  name              String?
+  phone             String
+  address           String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  account WhatsAppAccount @relation(fields: [whatsappAccountId], references: [id], onDelete: Cascade)
+  orders  Order[]
+
+  @@unique([whatsappAccountId, phone])
+  @@index([whatsappAccountId])
+}
+
+model Order {
+  id                String   @id @default(cuid())
+  whatsappAccountId String
+  customerId        String
+  items             Json
+  total             Float?
+  currency          String?
+  paymentMethod     String?
+  paymentStatus     String   @default("unpaid")
+  address           String?
+  status            String   @default("pending")
+  sourceMessageId   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  originalAmount   Float?
+  originalCurrency String?
+  baseAmount       Float?
+  exchangeRate     Float?
+  exchangeRateDate DateTime?
+  recipientName     String?
+
+  account  WhatsAppAccount @relation(fields: [whatsappAccountId], references: [id], onDelete: Cascade)
+  customer Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([whatsappAccountId, status])
+  @@index([whatsappAccountId, paymentStatus])
+  @@index([customerId])
+}
+model ExchangeRate {
+  id        String   @id @default(cuid())
+  fromCode  String
+  toCode    String
+  rate      Float
+  fetchedAt DateTime @default(now())
+
+  @@unique([fromCode, toCode])
+  @@index([fromCode, toCode, fetchedAt])
 }

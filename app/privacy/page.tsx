@@ -1,18 +1,18 @@
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-white p-8">
-      <div className="max-w-3xl mx-auto prose">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+    <div className="min-h-screen bg-page p-8">
+      <div className="mx-auto max-w-3xl text-ink">
+        <h1 className="mb-4 text-3xl font-bold text-ink">
           Privacy Policy
         </h1>
-        <p className="text-sm text-gray-500 mb-8">
+        <p className="mb-8 text-sm text-ink-3">
           Last updated: {new Date().toLocaleDateString()}
         </p>
 
-        <h2 className="text-xl font-semibold text-gray-900 mt-8 mb-3">
+        <h2 className="mb-3 mt-8 text-xl font-semibold text-ink">
           What we collect
         </h2>
-        <p className="text-gray-700 mb-4">
+        <p className="mb-4 text-ink-2">
           Fluxo processes WhatsApp messages that are sent to your business
           account. This includes message content, sender phone numbers,
           timestamps, and any media (images, audio) you receive. We use this
@@ -20,28 +20,28 @@ export default function PrivacyPage() {
           on your behalf.
         </p>
 
-        <h2 className="text-xl font-semibold text-gray-900 mt-8 mb-3">
+        <h2 className="mb-3 mt-8 text-xl font-semibold text-ink">
           How we use it
         </h2>
-        <p className="text-gray-700 mb-4">
+        <p className="mb-4 text-ink-2">
           All processing happens on our servers. We do not sell your data to
           third parties. We use AI models to understand message intent and
           extract structured information. Your business data remains yours.
         </p>
 
-        <h2 className="text-xl font-semibold text-gray-900 mt-8 mb-3">
+        <h2 className="mb-3 mt-8 text-xl font-semibold text-ink">
           Data retention
         </h2>
-        <p className="text-gray-700 mb-4">
+        <p className="mb-4 text-ink-2">
           You can delete your account and all associated data at any time
           from your account settings. Deleted data is permanently removed
           within 30 days.
         </p>
 
-        <h2 className="text-xl font-semibold text-gray-900 mt-8 mb-3">
+        <h2 className="mb-3 mt-8 text-xl font-semibold text-ink">
           Contact
         </h2>
-        <p className="text-gray-700">
+        <p className="text-ink-2">
           For privacy questions, contact us at privacy@fluxo.app.
         </p>
       </div>

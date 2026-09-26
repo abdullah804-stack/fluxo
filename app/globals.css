@@ -1,7 +1,162 @@
+/* app/globals.css */
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600&display=swap');
 @import "tailwindcss";
 
-body {
-  background: #ffffff;
-  color: #0a0a0a;
-  font-family: system-ui, -apple-system, sans-serif;
+:root {
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-script: "Caveat", cursive;
+
+  --color-page: #F5F7FE;
+  --color-page-2: #F5F7FE;
+  --color-surface: #FFFFFF;
+  --color-surface-hover: #F0F4FF;
+  --color-sidebar: #FFFFFF;
+  --color-bg-hover: #F0F4FF;
+  --color-bg-active: #E5ECFF;
+
+  --color-line: #EDF0F8;
+  --color-line-strong: #D5DCF0;
+  --color-line-soft: #F3F5FB;
+
+  --color-ink: #0B1220;
+  --color-ink-2: #556075;
+  --color-ink-3: #8B95AB;
+  --color-ink-4: #B7BFD2;
+
+  --color-primary: #3B6BFF;
+  --color-accent: #3B6BFF;
+  --color-primary-hover: #2D56D9;
+  --color-accent-hover: #2D56D9;
+  --color-primary-soft: #E5ECFF;
+  --color-accent-soft: #E5ECFF;
+
+  --color-blue: #3B6BFF;
+  --color-blue-soft: #E5EDFF;
+  --color-purple: #8B5CF6;
+  --color-purple-soft: #F0E8FF;
+  --color-pink: #F43F5E;
+  --color-pink-soft: #FFE5EC;
+  --color-teal: #0EA5A5;
+  --color-teal-soft: #E0F7F7;
+
+  --color-amber: #F59E0B;
+  --color-amber-soft: rgba(245,158,11,0.12);
+  --color-emerald: #10B981;
+  --color-emerald-soft: rgba(16,185,129,0.12);
+  --color-rose: #EF4444;
+  --color-rose-soft: rgba(239,68,68,0.12);
+  --color-coral: #F43F5E;
+  --color-coral-soft: #FFE5EC;
+
+  --color-success: #10B981;
+  --color-success-soft: #E7F8F1;
+  --color-warning: #F59E0B;
+  --color-warning-soft: #FEF3E0;
+  --color-danger: #EF4444;
+  --color-danger-soft: #FEE7E7;
+
+  --shadow-sm: 0 4px 20px -8px rgba(59,107,255,0.08);
+  --shadow-hover: 0 8px 30px -8px rgba(59,107,255,0.15);
+  --shadow-order: 0 2px 12px -4px rgba(59,107,255,0.06);
+}
+
+html { color-scheme: light; }
+body { background: var(--color-page); color: var(--color-ink); font-family: var(--font-sans); }
+.tnum { font-variant-numeric: tabular-nums; }
+.label { font-size: .6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: .12em; color: var(--color-ink-3); }
+.font-sans { font-family: var(--font-sans); }
+.font-script { font-family: var(--font-script); }
+
+.bg-page { background-color: var(--color-page); }
+.bg-surface { background-color: var(--color-surface); }
+.bg-primary { background-color: var(--color-primary); }
+.bg-primary-hover { background-color: var(--color-primary-hover); }
+.bg-accent { background-color: var(--color-accent); }
+.bg-accent-soft { background-color: var(--color-accent-soft); }
+.bg-line-soft { background-color: var(--color-line-soft); }
+.bg-rose { background-color: var(--color-rose); }
+.bg-emerald { background-color: var(--color-emerald); }
+.bg-amber { background-color: var(--color-amber); }
+.bg-\[--color-bg-hover\] { background-color: var(--color-bg-hover); }
+.hover\:bg-\[--color-bg-hover\]\:hover { background-color: var(--color-bg-hover); }
+
+.text-ink { color: var(--color-ink); }
+.text-ink-2 { color: var(--color-ink-2); }
+.text-ink-3 { color: var(--color-ink-3); }
+.text-accent { color: var(--color-accent); }
+.text-primary { color: var(--color-primary); }
+.text-primary-hover { color: var(--color-primary-hover); }
+.text-white { color: #fff; }
+.text-accent\/70 { color: color-mix(in srgb, var(--color-accent) 70%, transparent); }
+
+.border-line { border-color: var(--color-line); }
+.border-line-soft { border-color: var(--color-line-soft); }
+.border-line-strong { border-color: var(--color-line-strong); }
+
+.placeholder\:text-ink-3::placeholder { color: var(--color-ink-3); }
+
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-hover { box-shadow: var(--shadow-hover); }
+
+/* Base card: soft white, airy shadow */
+.card {
+  background: var(--color-surface);
+  border: 1px solid rgba(230,234,245,0.8);
+  border-radius: 20px;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  padding: 24px;
+  transition: transform 220ms cubic-bezier(0.4,0,0.2,1), box-shadow 220ms cubic-bezier(0.4,0,0.2,1), border-color 220ms cubic-bezier(0.4,0,0.2,1);
+}
+.lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+
+/* KPI card entrance: fade-up + scale, 60ms stagger */
+@keyframes fade-up-scale { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.fade-up-scale { animation: fade-up-scale 400ms cubic-bezier(0.4,0,0.2,1) both; animation-delay: calc(var(--i, 0) * 60ms); }
+
+/* Generic fade-up (order cards / empty states) */
+@keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.fade-up { animation: fade-up 260ms cubic-bezier(0.4,0,0.2,1) both; animation-delay: calc(var(--i, 0) * 60ms); }
+
+/* Micro-chart line draws in on mount */
+.micro-chart-path { stroke-dasharray: 160; stroke-dashoffset: 160; animation: draw-chart 800ms ease-out forwards; animation-delay: calc(var(--i, 0) * 60ms + 200ms); }
+@keyframes draw-chart { to { stroke-dashoffset: 0; } }
+
+/* KPI bottom-right color wash, grows slightly on hover */
+.kpi-glow { transition: transform 300ms ease-out; transform-origin: bottom right; }
+.card.lift:hover .kpi-glow { transform: scale(1.1); }
+
+/* Order card arrow button — filled soft-accent circle by default */
+.arrow-btn { transition: background-color 200ms ease-out, transform 200ms ease-out; }
+.arrow-btn svg { transition: transform 200ms ease-out; }
+.order-card:hover .arrow-btn { transform: scale(1.05); }
+.order-card:hover .arrow-btn svg { transform: translateX(2px); }
+
+/* Sidebar active bar: height animates in, flush with the sidebar edge */
+@keyframes bar-in { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.nav-bar-in { animation: bar-in 200ms ease-out both; transform-origin: center; }
+.nav-icon { transition: transform 150ms ease-out, color 150ms ease-out; }
+.nav-item:hover .nav-icon { transform: translateX(2px); }
+
+/* Background blobs: slow 40s drift */
+@keyframes drift-a { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(40px, 50px) scale(1.06); } }
+@keyframes drift-b { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-40px, -30px) scale(1.08); } }
+@keyframes drift-c { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px, -40px) scale(1.05); } }
+.blob-1 { animation: drift-a 40s ease-in-out infinite; }
+.blob-2 { animation: drift-b 40s ease-in-out infinite; }
+.blob-3 { animation: drift-c 40s ease-in-out infinite; }
+
+/* Thin custom scrollbar for the horizontal order strip */
+.thin-scroll::-webkit-scrollbar { height: 4px; }
+.thin-scroll::-webkit-scrollbar-track { background: transparent; }
+.thin-scroll::-webkit-scrollbar-thumb { background: var(--color-line-strong); border-radius: 4px; }
+.thin-scroll { scrollbar-width: thin; scrollbar-color: var(--color-line-strong) transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-up, .fade-up-scale, .micro-chart-path, .nav-bar-in, .blob-1, .blob-2, .blob-3 { animation: none; }
+  .micro-chart-path { stroke-dashoffset: 0; }
+  .lift:hover, .nav-item:hover .nav-icon, .order-card:hover .arrow-btn,
+  .order-card:hover .arrow-btn svg, .card.lift:hover .kpi-glow { transform: none; }
+  * { transition-duration: 0ms !important; }
 }

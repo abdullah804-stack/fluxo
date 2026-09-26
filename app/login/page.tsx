@@ -34,20 +34,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-page p-6">
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-8 rounded-lg shadow-md w-full max-w-md"
+        className="card w-full max-w-md p-8"
       >
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">
+        <h1 className="mb-1 text-2xl font-bold text-ink">
           Welcome back
         </h1>
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="mb-6 text-sm text-ink-2">
           Sign in to your Fluxo account.
         </p>
 
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">
+          <div className="mb-4 rounded bg-rose-soft p-3 text-sm text-rose">
             {error}
           </div>
         )}
@@ -57,7 +57,7 @@ export default function LoginPage() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full border border-gray-300 text-gray-900 rounded-md px-3 py-2 mb-3"
+          className="mb-3 w-full rounded-md border border-line bg-surface px-3 py-2 text-ink placeholder:text-ink-3"
           required
         />
 
@@ -66,21 +66,21 @@ export default function LoginPage() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full border border-gray-300 text-gray-900 rounded-md px-3 py-2 mb-4"
+          className="mb-4 w-full rounded-md border border-line bg-surface px-3 py-2 text-ink placeholder:text-ink-3"
           required
         />
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-black text-white py-2 rounded-md hover:bg-gray-800 disabled:opacity-50"
+          className="w-full rounded-md bg-primary py-2 text-white hover:bg-primary-hover disabled:opacity-50"
         >
           {loading ? "Signing in..." : "Sign in"}
         </button>
 
-        <p className="text-sm text-gray-600 mt-4 text-center">
-          Don't have an account?{" "}
-          <Link href="/signup" className="text-black font-medium">
+        <p className="mt-4 text-center text-sm text-ink-2">
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="font-medium text-primary hover:text-primary-hover">
             Sign up
           </Link>
         </p>
