@@ -25,6 +25,7 @@ const VALID_INTENTS = [
   "mark_paid",
   "invoice",
   "remind",
+  "remind_one",
   "search",
   "help",
   "unknown",

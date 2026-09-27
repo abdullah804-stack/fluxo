@@ -59,6 +59,8 @@ export default async function Messages({
     ),
   ] as string[];
 
+  const hasFilter = Boolean(sp.q || sp.dir || sp.intent || sp.from || sp.to);
+
   const inp: React.CSSProperties = {
     borderRadius: 8,
     border: `1px solid ${BORDER}`,
@@ -123,12 +125,25 @@ export default async function Messages({
         >
           Apply filters
         </button>
+        {hasFilter && (
+          <Link
+            href="/dashboard/messages"
+            className="rounded-lg border bg-white px-3 py-2 text-sm font-medium transition-colors"
+            style={{ borderColor: BORDER, color: TEXT_SECONDARY }}
+          >
+            Clear
+          </Link>
+        )}
       </form>
 
       {list.length === 0 ? (
         <EmptyState
-          title="No messages found"
-          subtitle="Messages are logged here with their extracted intent and data."
+          title={hasFilter ? "No messages found" : "No messages yet"}
+          subtitle={
+            hasFilter
+              ? "Try a different search or clear the filters."
+              : "Messages are logged here with their extracted intent and data."
+          }
           icon={
             <svg
               width="28"

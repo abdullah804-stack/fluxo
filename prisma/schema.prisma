@@ -125,12 +125,13 @@ model Order {
   sourceMessageId   String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  originalAmount   Float?
-  originalCurrency String?
-  baseAmount       Float?
-  exchangeRate     Float?
-  exchangeRateDate DateTime?
+  originalAmount    Float?
+  originalCurrency  String?
+  baseAmount        Float?
+  exchangeRate      Float?
+  exchangeRateDate  DateTime?
   recipientName     String?
+  lastRemindedAt    DateTime?
 
   account  WhatsAppAccount @relation(fields: [whatsappAccountId], references: [id], onDelete: Cascade)
   customer Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)

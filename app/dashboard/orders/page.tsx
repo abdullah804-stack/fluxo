@@ -32,7 +32,6 @@ const TEXT_PRIMARY = "#0B1220";
 const TEXT_SECONDARY = "#556075";
 const TEXT_MUTED = "#8B95AB";
 const ACCENT = "#3B6BFF";
-const HOVER = "#F0F4FF";
 
 export default async function Orders({
   searchParams,
@@ -85,6 +84,7 @@ export default async function Orders({
     const active = view === v;
     return (
       <Link
+        key={v}
         href={q({ view: v, page: undefined })}
         className="px-3 py-1.5 text-sm font-medium transition-colors duration-150"
         style={{
@@ -299,13 +299,9 @@ export default async function Orders({
                       return (
                         <tr
                           key={o.id}
-                          className="relative transition-colors duration-150"
-                          style={{ borderBottom: `1px solid ${LINE_SOFT}` }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = HOVER;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "transparent";
+                          className="relative transition-colors duration-150 hover:bg-[#F0F4FF]"
+                          style={{
+                            borderBottom: `1px solid ${LINE_SOFT}`,
                           }}
                         >
                           <td

@@ -4,12 +4,19 @@ import { PrismaClient } from "@prisma/client";
 import crypto from "crypto";
 import { extractMessage } from "@/lib/ai/extract";
 import { parseCommand } from "@/lib/ai/command";
-import { sendWhatsAppMessage } from "@/lib/whatsapp/send";
 import { convert } from "@/lib/currency/convert";
 import { transcribeAudio } from "@/lib/ai/transcript";
 import { downloadWhatsAppMedia } from "@/lib/whatsapp/media";
 import { analyzeImage } from "@/lib/ai/vision";
 import { bufferToDataUrl } from "@/lib/whatsapp/media-to-dataurl";
+import { put } from "@vercel/blob";
+import { generateInvoicePdf } from "@/lib/invoice/generate";
+import { sendRemindersForAccount } from "@/lib/whatsapp/reminders";
+import { searchMessages, ago } from "@/lib/whatsapp/search";
+import {
+  sendWhatsAppMessage,
+  sendWhatsAppDocument,
+} from "@/lib/whatsapp/send";
 
 export const dynamic = "force-dynamic";
 
@@ -606,7 +613,213 @@ async function handleCommandInBackground(
         reply = `✓ Cancelled *${name}'s* order.`;
         break;
       }
+            case "invoice": {
+        const name = command.params.customer_name;
+        if (!name) {
+          reply = "Please say the customer name: *invoice [name]*";
+          break;
+        }
 
+        const customer = await prisma.customer.findFirst({
+          where: {
+            whatsappAccountId: accountId,
+            name: { contains: name, mode: "insensitive" },
+          },
+        });
+
+        if (!customer) {
+          reply = `No customer found matching *${name}*.`;
+          break;
+        }
+
+        const order = await prisma.order.findFirst({
+          where: {
+            customerId: customer.id,
+            status: { not: "cancelled" },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (!order) {
+          reply = `No active order for *${name}*.`;
+          break;
+        }
+
+        try {
+          console.log("[invoice] generating for order:", order.id);
+
+          const pdf = await generateInvoicePdf(order.id);
+          if (!pdf) {
+            reply = `Could not generate invoice for *${name}*.`;
+            break;
+          }
+
+          console.log(
+            `[invoice] generated ${(pdf.buffer.length / 1024).toFixed(1)} KB`
+          );
+
+          const blob = await put(
+            `invoices/${pdf.filename}`,
+            pdf.buffer,
+            {
+              access: "public",
+              contentType: "application/pdf",
+            }
+          );
+
+          console.log("[invoice] uploaded:", blob.url);
+
+          await sendWhatsAppDocument(
+            replyTo,
+            blob.url,
+            pdf.filename,
+            `Invoice for ${name}`
+          );
+
+          // Log the outgoing document on the message table (optional but
+          // useful for the dashboard).
+          try {
+            await prisma.message.create({
+              data: {
+                whatsappAccountId: accountId,
+                waMessageId: `out-invoice-${order.id}-${Date.now()}`,
+                direction: "out",
+                fromNumber: replyTo,
+                toNumber: replyTo,
+                type: "document",
+                content: `[invoice] ${pdf.invoiceNumber} for ${name}`,
+                mediaUrl: blob.url,
+                rawPayload: {} as any,
+              },
+            });
+          } catch (logErr) {
+            console.warn("[invoice] failed to log outgoing message:", logErr);
+          }
+
+          reply = `✓ Invoice for *${name}* sent.`;
+        } catch (err) {
+          console.error("[invoice] failed:", err);
+          reply = `Failed to generate invoice for *${name}*.`;
+        }
+        break;
+      }
+            case "remind": {
+        try {
+          console.log("[remind] sending to all unpaid");
+
+          const summary = await sendRemindersForAccount(accountId, {
+            customerName: null,
+          });
+
+          if (summary.sent === 0 && summary.skipped === 0) {
+            reply = "✓ No unpaid customers to remind.";
+            break;
+          }
+
+          if (summary.sent === 0 && summary.skipped > 0) {
+            reply = `✓ Already reminded ${summary.skipped} customer${
+              summary.skipped > 1 ? "s" : ""
+            } in the last 24 hours. Total owed: ${formatAmount(
+              summary.totalOwed,
+              summary.currency
+            )}`;
+            break;
+          }
+
+          const skippedText =
+            summary.skipped > 0
+              ? ` · skipped ${summary.skipped} (recent)`
+              : "";
+
+          reply = `✓ Sent ${summary.sent} reminder${
+            summary.sent > 1 ? "s" : ""
+          }${skippedText}\nTotal owed: ${formatAmount(
+            summary.totalOwed,
+            summary.currency
+          )}`;
+        } catch (err) {
+          console.error("[remind] failed:", err);
+          reply = "Failed to send reminders.";
+        }
+        break;
+      }
+
+      case "remind_one": {
+        const name = command.params.customer_name;
+        if (!name) {
+          reply =
+            "Please say the customer name: *remind [name]*";
+          break;
+        }
+
+        try {
+          console.log("[remind] sending to one:", name);
+
+          const summary = await sendRemindersForAccount(accountId, {
+            customerName: name,
+          });
+
+          if (summary.sent === 0 && summary.skipped === 0) {
+            reply = `No unpaid customer found matching *${name}*.`;
+            break;
+          }
+
+          if (summary.sent === 0 && summary.skipped > 0) {
+            reply = `✓ Already reminded *${name}* recently.`;
+            break;
+          }
+
+          reply = `✓ Sent reminder to *${name}* · ${formatAmount(
+            summary.totalOwed,
+            summary.currency
+          )}`;
+        } catch (err) {
+          console.error("[remind_one] failed:", err);
+          reply = `Failed to send reminder to *${name}*.`;
+        }
+        break;
+      }
+            case "search": {
+        const query = (command.params.query || "").trim();
+        if (!query) {
+          reply =
+            "What should I search for? Try *search kurti* or *search from Sara*.";
+          break;
+        }
+
+        try {
+          console.log("[search] querying:", query);
+
+          const results = await searchMessages({
+            accountId,
+            query,
+            limit: 5,
+          });
+
+          if (results.length === 0) {
+            reply = `🔍 No messages found for *${query}*.`;
+            break;
+          }
+
+          const lines = results.map((r, i) => {
+            const who = r.senderName || r.fromNumber;
+            const preview = r.content
+              ? r.content.length > 60
+                ? r.content.slice(0, 60) + "…"
+                : r.content
+              : "(no text)";
+            return `${i + 1}. *${who}* — ${preview} · ${ago(r.createdAt)}`;
+          });
+
+          reply = `🔍 *${results.length} result${
+            results.length > 1 ? "s" : ""
+          } for "${query}"*\n\n${lines.join("\n")}`;
+        } catch (err) {
+          console.error("[search] failed:", err);
+          reply = `Search failed. Try a simpler keyword.`;
+        }
+        break;
+      }
       case "mark_paid": {
         const name = command.params.customer_name;
         if (!name) {
@@ -647,7 +860,7 @@ async function handleCommandInBackground(
 
       case "help":
       default: {
-                reply = `*Fluxo Commands*\n\n• *summary* — today's business\n• *pending* — list pending orders\n• *who owes me* — unpaid orders\n• *shipped [name]* — mark out for delivery\n• *delivered [name]* — mark delivered\n• *cancel [name]* — cancel the order\n• *paid [name]* — mark paid`;
+                                reply = `*Fluxo Commands*\n\n• *summary* — today's business\n• *pending* — list pending orders\n• *who owes me* — unpaid orders\n• *shipped [name]* — mark out for delivery\n• *delivered [name]* — mark delivered\n• *cancel [name]* — cancel the order\n• *paid [name]* — mark paid\n• *invoice [name]* — send an invoice\n• *remind all* — remind unpaid customers\n• *remind [name]* — remind one customer\n• *search [keyword]* — find past messages`;
         break;
       }
     }
@@ -815,4 +1028,25 @@ async function handleImageInBackground(
   } catch (error) {
     console.error("[image] failed:", error);
   }
+}/* ------------------------------------------------------------------ */
+/* Helper: format money for replies                                    */
+/* ------------------------------------------------------------------ */
+function formatAmount(amount: number, currency: string): string {
+  const symbols: Record<string, string> = {
+    USD: "$",
+    EUR: "€",
+    GBP: "£",
+    PKR: "Rs ",
+    INR: "₹",
+    AED: "AED ",
+    SAR: "SAR ",
+    BDT: "৳",
+    NGN: "₦",
+  };
+  const sym = symbols[currency] || `${currency} `;
+  const n = Number(amount).toLocaleString("en-US", {
+    minimumFractionDigits: Number(amount) % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+  return `${sym}${n}`;
 }
