@@ -9,6 +9,8 @@ import { StatusChip } from "./_components/StatusChip";
 import { Money } from "./_components/Money";
 import { OrderScroller } from "./_components/OrderScroller";
 
+export const revalidate = 0;
+
 const P = {
   width: 22,
   height: 22,

@@ -6,6 +6,7 @@ import { getCtx, itemList, orderTone, orderLabel } from "../../_lib";
 import { PageHeader } from "../../_components/PageHeader";
 import { StatusChip } from "../../_components/StatusChip";
 import { Money } from "../../_components/Money";
+import StatusButtons from "./StatusButton";
 
 export default async function OrderDetail({
   params,
@@ -147,16 +148,18 @@ export default async function OrderDetail({
           </h2>
 
           <dl>
-            {row(
+                        {row(
               "Status",
-              <StatusChip
-                tone={
-                  orderTone[o.status as keyof typeof orderTone] ??
-                  "neutral"
+              <StatusButtons
+                orderId={o.id}
+                current={
+                  o.status as
+                    | "pending"
+                    | "out_for_delivery"
+                    | "delivered"
+                    | "cancelled"
                 }
-              >
-                {orderLabel[o.status] ?? o.status}
-              </StatusChip>
+              />
             )}
             {row(
               "Payment",

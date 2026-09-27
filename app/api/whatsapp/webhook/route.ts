@@ -1,3 +1,4 @@
+// app/api/whatsapp/webhook/route.ts
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import crypto from "crypto";
@@ -5,6 +6,10 @@ import { extractMessage } from "@/lib/ai/extract";
 import { parseCommand } from "@/lib/ai/command";
 import { sendWhatsAppMessage } from "@/lib/whatsapp/send";
 import { convert } from "@/lib/currency/convert";
+import { transcribeAudio } from "@/lib/ai/transcript";
+import { downloadWhatsAppMedia } from "@/lib/whatsapp/media";
+import { analyzeImage } from "@/lib/ai/vision";
+import { bufferToDataUrl } from "@/lib/whatsapp/media-to-dataurl";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +38,6 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const rawBody = await req.text();
 
-  // Validate signature
   const signature = req.headers.get("x-hub-signature-256");
   const appSecret = process.env.WHATSAPP_APP_SECRET;
 
@@ -60,7 +64,6 @@ export async function POST(req: Request) {
     const change = entry?.changes?.[0];
     const value = change?.value;
 
-    // Skip if not a message
     if (!value?.messages || value.messages.length === 0) {
       return NextResponse.json({ ok: true });
     }
@@ -93,7 +96,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // Idempotent — Meta retries slow webhooks, so skip duplicates
+    // Idempotent — Meta retries slow webhooks, skip duplicates
     const existing = await prisma.message.findUnique({
       where: { waMessageId },
     });
@@ -119,18 +122,20 @@ export async function POST(req: Request) {
 
     console.log("[webhook] stored message:", waMessageId);
 
-    // Detect owner vs customer
-    // NOTE: For testing with the Meta test number, this check will never match
-    // because the test number is different from your phone. Set FORCE_OWNER=true
-    // in .env during testing to treat all messages as owner commands.
-        const forceOwner = process.env.FORCE_OWNER === "true";
+    // Owner detection
+    const forceOwner = process.env.FORCE_OWNER === "true";
     const isOwnerNumber =
       forceOwner ||
-      fromNumber.replace(/\D/g, "") === account.phoneNumber.replace(/\D/g, "");
+      fromNumber.replace(/\D/g, "") ===
+        account.phoneNumber.replace(/\D/g, "");
 
+    /* ---------------------------------------------------------------- */
+    /* Route by message type                                             */
+    /* ---------------------------------------------------------------- */
+
+    // TEXT — command or customer message
     if (type === "text" && content) {
       if (isOwnerNumber) {
-        // Owner's number — decide: command or data entry?
         const looksLikeCommand = quickCommandCheck(content);
 
         if (looksLikeCommand) {
@@ -139,18 +144,50 @@ export async function POST(req: Request) {
           return NextResponse.json({ ok: true });
         }
 
-        // Owner typed something that isn't a command — treat as data entry
         console.log("[webhook] owner non-command, extracting:", content);
       }
 
-      // Customer message OR owner typing data manually
       extractInBackground(
         storedMessage.id,
-        content!,
-        account!.userId,
+        content,
+        account.userId,
         account.id,
         fromNumber
       );
+    }
+
+    // AUDIO (voice notes) — transcribe, then extract
+    else if (type === "audio" && mediaId) {
+      if (isOwnerNumber) {
+        // Voice commands from owner — transcribe, then check if it looks
+        // like a command. For MVP we only run voice through the extractor,
+        // but we log this in case we want command support later.
+        console.log("[webhook] owner voice note, extracting");
+      }
+      handleVoiceNoteInBackground(
+        storedMessage.id,
+        mediaId,
+        account.userId,
+        account.id,
+        fromNumber
+      );
+    }
+
+    // IMAGE — placeholder for future vision pipeline
+        // IMAGE — analyze via vision model
+    else if (type === "image" && mediaId) {
+      handleImageInBackground(
+        storedMessage.id,
+        mediaId,
+        account.userId,
+        account.id,
+        fromNumber
+      );
+    }
+
+    // DOCUMENT — placeholder
+    else if (type === "document" && mediaId) {
+      console.log("[webhook] document received (not yet processed):", mediaId);
     }
 
     return NextResponse.json({ ok: true });
@@ -175,7 +212,8 @@ async function extractInBackground(
       where: { id: userId },
     });
 
-        const baseCurrency = owner?.baseCurrency || "USD";
+    const baseCurrency = owner?.baseCurrency || "USD";
+
     const extracted = await extractMessage(
       content,
       `${owner?.name || "this business"}\nSeller base currency: ${baseCurrency}\nCustomer phone: +${fromNumber}`
@@ -225,8 +263,9 @@ async function extractInBackground(
         });
       }
 
-            // Currency: keep the seller's existing behaviour, add original + base amounts
-      const rawCurrency = extracted.order.currency?.trim().toUpperCase() || null;
+      // Currency conversion
+      const rawCurrency =
+        extracted.order.currency?.trim().toUpperCase() || null;
       const currencyConfidence =
         (extracted.order as any).currency_confidence ?? 1;
       const orderCurrency =
@@ -248,14 +287,17 @@ async function extractInBackground(
           exchangeRateDate = new Date();
         } else {
           try {
-            const converted = await convert(orderTotal, orderCurrency, baseCurrency);
+            const converted = await convert(
+              orderTotal,
+              orderCurrency,
+              baseCurrency
+            );
             if (converted) {
               baseAmount = converted.amount;
               exchangeRate = converted.rate;
               exchangeRateDate = converted.date;
             }
           } catch (convErr) {
-            // Never block order creation on a rate lookup
             console.error("[webhook] currency conversion failed:", convErr);
           }
         }
@@ -271,7 +313,7 @@ async function extractInBackground(
           paymentMethod: extracted.order.payment_method,
           address: extracted.order.address,
           sourceMessageId: messageId,
-          recipientName: extracted.customer.name, 
+          recipientName: extracted.customer.name,
           status: "pending",
           paymentStatus: "unpaid",
           originalAmount,
@@ -286,6 +328,60 @@ async function extractInBackground(
     }
   } catch (aiError) {
     console.error("[webhook] background extraction failed:", aiError);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Background: transcribe a voice note, then run the extractor         */
+/* ------------------------------------------------------------------ */
+async function handleVoiceNoteInBackground(
+  messageId: string,
+  mediaId: string,
+  userId: string,
+  accountId: string,
+  fromNumber: string
+) {
+  try {
+    console.log("[voice] downloading media:", mediaId);
+    const media = await downloadWhatsAppMedia(mediaId);
+
+    if (!media) {
+      console.warn("[voice] download failed for", mediaId);
+      return;
+    }
+
+    console.log(
+      `[voice] downloaded ${(media.buffer.length / 1024).toFixed(1)} KB`
+    );
+
+    const transcription = await transcribeAudio(
+      media.buffer,
+      `${messageId}.ogg`
+    );
+
+    if (!transcription) {
+      console.warn("[voice] transcription empty for", mediaId);
+      return;
+    }
+
+    console.log("[voice] transcribed:", transcription.slice(0, 80));
+
+    // Store the transcription as content so the message detail page shows it
+    await prisma.message.update({
+      where: { id: messageId },
+      data: { content: `[voice] ${transcription}` },
+    });
+
+    // Run the extractor on the transcription — same pipeline as text
+    await extractInBackground(
+      messageId,
+      transcription,
+      userId,
+      accountId,
+      fromNumber
+    );
+  } catch (error) {
+    console.error("[voice] failed:", error);
   }
 }
 
@@ -429,6 +525,88 @@ async function handleCommandInBackground(
         break;
       }
 
+            case "mark_shipped": {
+        const name = command.params.customer_name;
+        if (!name) {
+          reply = "Please say the customer name: *shipped [name]*";
+          break;
+        }
+
+        const customer = await prisma.customer.findFirst({
+          where: {
+            whatsappAccountId: accountId,
+            name: { contains: name, mode: "insensitive" },
+          },
+        });
+
+        if (!customer) {
+          reply = `No customer found matching *${name}*.`;
+          break;
+        }
+
+        const order = await prisma.order.findFirst({
+          where: {
+            customerId: customer.id,
+            status: { in: ["pending", "out_for_delivery"] },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (!order) {
+          reply = `No active order for *${name}*.`;
+          break;
+        }
+
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { status: "out_for_delivery" },
+        });
+
+        reply = `✓ Marked *${name}'s* order as out for delivery.`;
+        break;
+      }
+
+      case "cancel": {
+        const name = command.params.customer_name;
+        if (!name) {
+          reply = "Please say the customer name: *cancel [name]*";
+          break;
+        }
+
+        const customer = await prisma.customer.findFirst({
+          where: {
+            whatsappAccountId: accountId,
+            name: { contains: name, mode: "insensitive" },
+          },
+        });
+
+        if (!customer) {
+          reply = `No customer found matching *${name}*.`;
+          break;
+        }
+
+        const order = await prisma.order.findFirst({
+          where: {
+            customerId: customer.id,
+            status: { not: "cancelled" },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (!order) {
+          reply = `No active order for *${name}*.`;
+          break;
+        }
+
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { status: "cancelled" },
+        });
+
+        reply = `✓ Cancelled *${name}'s* order.`;
+        break;
+      }
+
       case "mark_paid": {
         const name = command.params.customer_name;
         if (!name) {
@@ -469,7 +647,7 @@ async function handleCommandInBackground(
 
       case "help":
       default: {
-        reply = `*Fluxo Commands*\n\n• *summary* — today's business\n• *pending* — list pending orders\n• *who owes me* — unpaid orders\n• *delivered [name]* — mark delivered\n• *paid [name]* — mark paid`;
+                reply = `*Fluxo Commands*\n\n• *summary* — today's business\n• *pending* — list pending orders\n• *who owes me* — unpaid orders\n• *shipped [name]* — mark out for delivery\n• *delivered [name]* — mark delivered\n• *cancel [name]* — cancel the order\n• *paid [name]* — mark paid`;
         break;
       }
     }
@@ -484,18 +662,12 @@ async function handleCommandInBackground(
   }
 }
 
-/**
- * Fast, deterministic check: does this text look like one of our known
- * commands? If yes, route to the command parser. If no, route to the
- * extractor as a customer-style message.
- *
- * This keeps the command parser from wasting AI calls on order text,
- * and lets the owner type orders manually without confusion.
- */
+/* ------------------------------------------------------------------ */
+/* Helper: does this text look like a known command?                   */
+/* ------------------------------------------------------------------ */
 function quickCommandCheck(text: string): boolean {
   const t = text.trim().toLowerCase();
 
-  // Exact or near-exact matches for single-word commands
   const exactCommands = [
     "summary",
     "help",
@@ -506,16 +678,20 @@ function quickCommandCheck(text: string): boolean {
   ];
   if (exactCommands.includes(t)) return true;
 
-  // Phrase patterns for multi-word commands
-  const patterns = [
+    const patterns = [
     /^who owes/i,
     /^kis ne/i,
     /^show pending/i,
     /^show unpaid/i,
     /^show orders/i,
     /^list pending/i,
+    /^shipped\s+\w+/i,
+    /^mark shipped\s+\w+/i,
+    /^out for delivery\s+\w+/i,
     /^delivered\s+\w+/i,
     /^mark delivered\s+\w+/i,
+    /^cancel\s+\w+/i,
+    /^cancel order\s+\w+/i,
     /^paid\s+\w+/i,
     /^mark paid\s+\w+/i,
     /^invoice\s+\w+/i,
@@ -530,4 +706,113 @@ function quickCommandCheck(text: string): boolean {
   }
 
   return false;
+}
+/* ------------------------------------------------------------------ */
+/* Background: analyze an image and update records if it's a payment  */
+/* ------------------------------------------------------------------ */
+async function handleImageInBackground(
+  messageId: string,
+  mediaId: string,
+  userId: string,
+  accountId: string,
+  fromNumber: string
+) {
+  try {
+    console.log("[image] downloading media:", mediaId);
+    const media = await downloadWhatsAppMedia(mediaId);
+
+    if (!media) {
+      console.warn("[image] download failed for", mediaId);
+      return;
+    }
+
+    console.log(
+      `[image] downloaded ${(media.buffer.length / 1024).toFixed(1)} KB`
+    );
+
+    const owner = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    const baseCurrency = owner?.baseCurrency || "USD";
+
+    const dataUrl = bufferToDataUrl(media.buffer, media.contentType);
+
+    const analysis = await analyzeImage(dataUrl, {
+      businessName: owner?.name || "this business",
+      baseCurrency,
+      customerPhone: fromNumber,
+    });
+
+    if (!analysis) {
+      console.warn("[image] analysis returned null");
+      return;
+    }
+
+    console.log(
+      "[image] type:",
+      analysis.imageType,
+      "(confidence:",
+      analysis.confidence,
+      ")"
+    );
+
+    await prisma.message.update({
+      where: { id: messageId },
+      data: { imageAnalysis: analysis as any },
+    });
+
+    // If it's a payment screenshot with high confidence, mark the latest
+    // unpaid order for this customer as paid
+    if (
+      analysis.imageType === "payment_screenshot" &&
+      analysis.confidence >= 0.7 &&
+      analysis.payment
+    ) {
+      const customer = await prisma.customer.findUnique({
+        where: {
+          whatsappAccountId_phone: {
+            whatsappAccountId: accountId,
+            phone: fromNumber,
+          },
+        },
+      });
+
+      if (!customer) {
+        console.log("[image] no customer for phone, skipping payment match");
+        return;
+      }
+
+      // Find the latest unpaid order for this customer
+      const unpaidOrder = await prisma.order.findFirst({
+        where: {
+          customerId: customer.id,
+          paymentStatus: "unpaid",
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (!unpaidOrder) {
+        console.log("[image] no unpaid order to mark as paid");
+        return;
+      }
+
+      await prisma.order.update({
+        where: { id: unpaidOrder.id },
+        data: { paymentStatus: "paid" },
+      });
+
+      console.log(
+        "[image] marked order as paid:",
+        unpaidOrder.id,
+        "| amount:",
+        analysis.payment.amount,
+        analysis.payment.currency,
+        "| method:",
+        analysis.payment.method
+      );
+    }
+  } catch (error) {
+    console.error("[image] failed:", error);
+  }
 }

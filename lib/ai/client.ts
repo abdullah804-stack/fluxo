@@ -1,6 +1,11 @@
+// lib/ai/client.ts
+
 interface ChatMessage {
   role: "system" | "user" | "assistant";
-  content: string;
+  content: string | Array<
+    | { type: "text"; text: string }
+    | { type: "image_url"; image_url: { url: string } }
+  >;
 }
 
 interface ChatOptions {
@@ -10,6 +15,10 @@ interface ChatOptions {
   maxRetries?: number;
 }
 
+/**
+ * Free TEXT models on OpenRouter, tried in order until one succeeds.
+ * These do NOT support image input.
+ */
 const MODEL_FALLBACKS = [
   "openrouter/free",
   "openai/gpt-oss-20b:free",
@@ -17,7 +26,21 @@ const MODEL_FALLBACKS = [
   "qwen/qwen-3-32b:free",
 ];
 
-function getModelList(): string[] {
+/**
+ * Free VISION models on OpenRouter, tried in order until one succeeds.
+ * These support image input (multimodal).
+ */
+export const VISION_MODEL_FALLBACKS = [
+  "allenai/molmo-2-8b:free",
+  "nvidia/nemotron-nano-12b-v2-vl:free",
+  "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+  "google/gemma-4-26b-a4b-it:free",
+];
+
+/**
+ * Text-only model list. Never includes vision models.
+ */
+function getTextModelList(): string[] {
   const primary = process.env.OPENROUTER_MODEL;
   if (primary && !MODEL_FALLBACKS.includes(primary)) {
     return [primary, ...MODEL_FALLBACKS];
@@ -37,7 +60,7 @@ export async function chat({
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
 
-  const modelList = models || getModelList();
+  const modelList = models || getTextModelList();
   let lastError: Error | null = null;
 
   for (const model of modelList) {

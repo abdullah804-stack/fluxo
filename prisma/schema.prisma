@@ -87,6 +87,7 @@ model Message {
   mediaId           String?
   rawPayload        Json
   extractedData     Json?
+  imageAnalysis     Json?
   createdAt         DateTime @default(now())
 
   account WhatsAppAccount @relation(fields: [whatsappAccountId], references: [id], onDelete: Cascade)

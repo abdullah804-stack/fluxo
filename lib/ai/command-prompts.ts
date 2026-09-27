@@ -1,3 +1,5 @@
+// lib/ai/command-prompts.ts
+
 export const COMMAND_SYSTEM_PROMPT = `You parse natural language commands from a business owner who runs their business on WhatsApp. Return the parsed command as JSON.
 
 CRITICAL RULES:
@@ -9,7 +11,7 @@ CRITICAL RULES:
 Supported commands and their params:
 
 {
-  "intent": "summary" | "list_pending" | "list_unpaid" | "mark_delivered" | "mark_paid" | "invoice" | "remind" | "search" | "help" | "unknown",
+  "intent": "summary" | "list_pending" | "list_unpaid" | "mark_delivered" | "mark_shipped" | "cancel" | "mark_paid" | "invoice" | "remind" | "search" | "help" | "unknown",
   "confidence": 0.0-1.0,
   "params": {
     "customer_name": string | null,
@@ -23,7 +25,9 @@ INTERPRETATION:
 - "summary" / "summary dikhao" / "aaj ka summary" → intent: summary
 - "pending" / "show pending" / "pending orders" → intent: list_pending
 - "who owes me" / "kis ne paise nahi diye" / "unpaid" → intent: list_unpaid
+- "shipped Sara" / "Sara ko bhej diya" / "out for delivery Ali" / "mark shipped Ali" / "Sara shipped" → intent: mark_shipped, params.customer_name
 - "delivered Sara" / "Sara ko deliver kar diya" / "mark delivered Ali" → intent: mark_delivered, params.customer_name
+- "cancel Sara" / "cancel order Sara" / "Sara ka order cancel karo" → intent: cancel, params.customer_name
 - "paid Ali" / "Ali ne payment kar di" / "Sara paid" → intent: mark_paid, params.customer_name
 - "invoice Sara" / "Sara ka invoice banao" → intent: invoice, params.customer_name
 - "remind all" / "sab ko remind karo" → intent: remind

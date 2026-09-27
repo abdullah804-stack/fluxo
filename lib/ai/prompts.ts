@@ -63,6 +63,15 @@ CURRENCY DETECTION:
 
 Return ISO 4217 codes only. If you truly cannot determine a currency, 
 return null and set currency_confidence to 0.
+
+SCRIPT NORMALIZATION (MANDATORY):
+- ANY name, item name, or address field MUST be output in Latin/Roman 
+  script, never in Devanagari (Hindi/Urdu), Arabic, or any other script.
+- If the message contains characters from another script (e.g., सारा, अली), 
+  transliterate them phonetically to Latin.
+- Examples: "सारा" → "Sara", "अली" → "Ali", "मेहनत" → "Mehnat", "गुलबर्ग" → "Gulberg".
+- If transliteration is uncertain, use the most common spelling.
+- This rule has no exceptions.
 `;
 
 export function buildExtractorPrompt(messageText: string, businessName: string) {

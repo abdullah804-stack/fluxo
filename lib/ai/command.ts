@@ -1,3 +1,4 @@
+// lib/ai/commands.ts
 import { chat, extractJson } from "@/lib/ai/client";
 import {
   COMMAND_SYSTEM_PROMPT,
@@ -18,7 +19,9 @@ const VALID_INTENTS = [
   "summary",
   "list_pending",
   "list_unpaid",
+  "mark_shipped",
   "mark_delivered",
+  "cancel",
   "mark_paid",
   "invoice",
   "remind",
