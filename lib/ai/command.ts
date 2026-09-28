@@ -28,6 +28,7 @@ const VALID_INTENTS = [
   "invoice",
   "remind",
   "remind_one",
+  "send_draft",
   "search",
   "help",
   "unknown",

@@ -4,6 +4,7 @@ import { PageHeader } from "../_components/PageHeader";
 import { CurrencySettings } from "./CurrencySettings";
 import { BusinessInfo } from "./BusinessInfo";
 import { DisconnectButton } from "./DisconnectButton";
+import { DraftNotificationsToggle } from "./DraftNotificationsToggle";
 
 const BORDER = "#E6EAF5";
 const LINE_SOFT = "#F3F5FB";
@@ -106,7 +107,26 @@ export default async function Settings() {
           </p>
           <CurrencySettings initialBaseCurrency={baseCurrency} />
         </section>
-
+                  {/* Draft notifications */}
+        <section
+          style={{ ...card, animationDelay: "125ms" }}
+          className="fade-up"
+        >
+          <h2
+            className="mb-1 text-base font-semibold tracking-tight"
+            style={{ color: TEXT_PRIMARY }}
+          >
+            Draft notifications
+          </h2>
+          <p className="mb-4 text-sm" style={{ color: TEXT_SECONDARY }}>
+            When a customer asks a question, Fluxo drafts a reply and
+            pings you on WhatsApp. You copy it, edit if needed, and
+            send. Off by default.
+          </p>
+          <DraftNotificationsToggle
+            initialEnabled={user.draftNotifications ?? false}
+          />
+        </section>
         {/* Danger zone */}
         {account && (
           <section

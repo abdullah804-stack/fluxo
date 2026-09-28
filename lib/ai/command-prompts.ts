@@ -11,7 +11,7 @@ CRITICAL RULES:
 Supported commands and their params:
 
 {
-  "intent": "summary" | "list_pending" | "list_unpaid" | "list_repeat" | "weekly_report" | "mark_delivered" | "mark_shipped" | "cancel" | "mark_paid" | "invoice" | "remind" | "remind_one" | "search" | "help" | "unknown",
+  "intent": "summary" | "list_pending" | "list_unpaid" | "list_repeat" | "weekly_report" | "mark_delivered" | "mark_shipped" | "cancel" | "mark_paid" | "invoice" | "remind" | "remind_one" | "send_draft" | "search" | "help" | "unknown",
   "confidence": 0.0-1.0,
   "params": {
     "customer_name": string | null,
@@ -34,11 +34,17 @@ INTERPRETATION:
 - "invoice Sara" / "Sara ka invoice banao" / "Sara invoice" / "make invoice for Ali" / "send invoice to Sara" → intent: invoice, params.customer_name
 - "remind all" / "sab ko remind karo" / "sab ko yaad dilao" / "remind everyone" / "send reminders" / "payment reminders" → intent: remind, params.customer_name = null
 - "remind Sara" / "Sara ko remind karo" / "yaad dilao Sara ko" / "remind Ali" / "payment reminder to Sara" → intent: remind_one, params.customer_name
+- "send Ahmed" / "send draft Ahmed" / "send reply Ahmed" / "Ahmed ko bhej do" / "Ahmed ko reply bhejo" / "send Ahmed's reply" / "approve Ahmed" / "send to Ahmed" → intent: send_draft, params.customer_name
 - "search [keyword]" / "dhundo [keyword]" / "find [keyword]" / "look for [keyword]" → intent: search, params.query = keyword
 - "search order kurti" / "find orders with kurti" → intent: search, params.query = "order kurti"
 - "search from Sara" / "Sara ki messages dhundo" / "find messages from Ali" → intent: search, params.query = "from Sara"
 - "help" / "commands" → intent: help
 - Anything else → intent: unknown
+
+IMPORTANT DISTINCTIONS:
+- "send Ahmed" means approve and send the pending draft to Ahmed (send_draft).
+- "shipped Ahmed" means mark Ahmed's order as out for delivery (mark_shipped). Do not confuse these.
+- "invoice Ahmed" means generate an invoice for Ahmed (invoice). Do not confuse with send_draft.
 
 For search: put the entire search phrase (including keywords like "order" or "from") in params.query. Do not try to interpret filters — the search engine will handle that.
 

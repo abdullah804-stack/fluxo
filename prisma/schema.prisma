@@ -16,6 +16,7 @@ model User {
   emailVerified DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  draftNotifications Boolean @default(false)
 
   accounts        Account[]
   sessions        Session[]
@@ -70,6 +71,8 @@ model WhatsAppAccount {
   messages Message[]
   customers Customer[]
   orders   Order[]
+  pendingDrafts PendingDraft[]
+
 
   @@index([userId])
 }
@@ -150,4 +153,23 @@ model ExchangeRate {
 
   @@unique([fromCode, toCode])
   @@index([fromCode, toCode, fetchedAt])
+}
+
+model PendingDraft {
+  id                String   @id @default(cuid())
+  whatsappAccountId String
+  messageId         String   @unique
+  customerPhone     String
+  customerName      String?
+  draftText         String   @db.Text
+  status            String   @default("pending")
+  sentAt            DateTime?
+  createdAt         DateTime @default(now())
+  expiresAt         DateTime
+
+  account WhatsAppAccount @relation(fields: [whatsappAccountId], references: [id], onDelete: Cascade)
+
+  @@index([whatsappAccountId, status])
+  @@index([whatsappAccountId, customerName])
+  @@index([whatsappAccountId, createdAt])
 }

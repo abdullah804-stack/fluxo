@@ -17,6 +17,12 @@ import {
   computeWeeklyReport,
   formatWeeklyReport,
 } from "@/lib/reports/weekly";
+
+import { notifyOwnerWithDraft } from "@/lib/whatsapp/notify-draft";
+import {
+  findPendingDraftsByName,
+  approveAndSendDraft,
+} from "@/lib/whatsapp/drafts";
 import {
   sendWhatsAppMessage,
   sendWhatsAppDocument,
@@ -335,7 +341,19 @@ async function extractInBackground(
         },
       });
 
-      console.log("[webhook] order created for customer:", customer.id);
+            console.log("[webhook] order created for customer:", customer.id);
+    }
+
+    // Owner notification: if this message is a question, ping the owner
+    // with a draft reply (only if they've opted in via Settings).
+    if (extracted.intent === "question") {
+      notifyOwnerWithDraft({
+        messageId,
+        accountId,
+        userId,
+        customerPhone: fromNumber,
+        messageContent: content,
+      });
     }
   } catch (aiError) {
     console.error("[webhook] background extraction failed:", aiError);
@@ -956,6 +974,56 @@ async function handleCommandInBackground(
         }
         break;
       }
+            case "send_draft": {
+        const name = command.params.customer_name;
+        if (!name) {
+          reply =
+            "Who should I send to? Try *send Ahmed* or *send Sara*.";
+          break;
+        }
+
+        try {
+          console.log("[send-draft] looking for pending draft:", name);
+
+          const matches = await findPendingDraftsByName({
+            accountId,
+            name,
+          });
+
+          if (matches.length === 0) {
+            reply = `No pending draft found for *${name}*. They may have already been sent, skipped, or expired.`;
+            break;
+          }
+
+          if (matches.length > 1) {
+            const list = matches
+              .slice(0, 3)
+              .map(
+                (d) =>
+                  `• ${d.customerName || d.customerPhone} — ${d.draftText.slice(0, 40)}…`
+              )
+              .join("\n");
+            reply = `Multiple pending drafts match *${name}*:\n\n${list}\n\nPlease be more specific (e.g. use the full name).`;
+            break;
+          }
+
+          const draft = matches[0];
+          const result = await approveAndSendDraft(draft.id);
+
+          if (!result.ok) {
+            reply = `Could not send: ${result.error}.`;
+            break;
+          }
+
+          reply = `✓ Sent reply to *${
+            draft.customerName || draft.customerPhone
+          }*`;
+        } catch (err) {
+          console.error("[send-draft] failed:", err);
+          reply = "Failed to send the draft.";
+        }
+        break;
+      }
       case "mark_paid": {
         const name = command.params.customer_name;
         if (!name) {
@@ -996,8 +1064,7 @@ async function handleCommandInBackground(
 
       case "help":
       default: {
-                                                reply = `*Fluxo Commands*\n\n• *summary* — today's business\n• *pending* — list pending orders\n• *who owes me* — unpaid orders\n• *repeat customers* — loyal buyers\n• *weekly report* — this week's stats\n• *shipped [name]* — mark out for delivery\n• *delivered [name]* — mark delivered\n• *cancel [name]* — cancel the order\n• *paid [name]* — mark paid\n• *invoice [name]* — send an invoice\n• *remind all* — remind unpaid customers\n• *remind [name]* — remind one customer\n• *search [keyword]* — find past messages`;
-      }
+        reply = `*Fluxo Commands*\n\n• *summary* — today's business\n• *pending* — list pending orders\n• *who owes me* — unpaid orders\n• *repeat customers* — loyal buyers\n• *weekly report* — this week's stats\n• *shipped [name]* — mark out for delivery\n• *delivered [name]* — mark delivered\n• *cancel [name]* — cancel the order\n• *paid [name]* — mark paid\n• *invoice [name]* — send an invoice\n• *remind all* — remind unpaid customers\n• *remind [name]* — remind one customer\n• *send [name]* — send the pending draft reply\n• *search [keyword]* — find past messages`;      }
     }
 
     await sendWhatsAppMessage(replyTo, reply);
@@ -1060,6 +1127,11 @@ function quickCommandCheck(text: string): boolean {
     /^week summary/i,
     /^hafte/i,
     /^this week/i,
+    /^send\s+\w+/i,
+    /^send draft\s+\w+/i,
+    /^send reply\s+\w+/i,
+    /^send to\s+\w+/i,
+    /^approve\s+\w+/i,
   ];
 
   for (const p of patterns) {
