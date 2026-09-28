@@ -5,7 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { getCtx, intentOf, intentTone } from "../../_lib";
 import { PageHeader } from "../../_components/PageHeader";
 import { StatusChip } from "../../_components/StatusChip";
-import DraftReply from "./DraftReply";
+import DraftReply, {
+  type PendingDraftStatus,
+} from "./DraftReply";
 
 const BORDER = "#E6EAF5";
 const LINE_SOFT = "#F3F5FB";
@@ -37,6 +39,15 @@ export default async function MessageDetail({
   const order = await prisma.order.findFirst({
     where: { ...scope, sourceMessageId: m.waMessageId },
     select: { id: true, total: true, currency: true },
+  });
+
+    // Look up any pending draft for this message
+  const pendingDraft = await prisma.pendingDraft.findUnique({
+    where: { messageId: m.id },
+    select: {
+      status: true,
+      sentAt: true,
+    },
   });
 
   const card: React.CSSProperties = {
@@ -155,13 +166,21 @@ export default async function MessageDetail({
               )}
             </p>
           </div>
-                    {/* Suggested reply */}
+            {/* Suggested reply */}
           {isInbound && m.content && (
             <DraftReply
               messageId={m.id}
               initialDraft={
                 (m as { draftReply?: StoredDraft | null }).draftReply ??
                 null
+              }
+              pendingStatus={
+                (pendingDraft?.status as PendingDraftStatus) ?? null
+              }
+              sentAt={
+                pendingDraft?.sentAt
+                  ? pendingDraft.sentAt.toISOString()
+                  : null
               }
             />
           )}

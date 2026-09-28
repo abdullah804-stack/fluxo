@@ -977,11 +977,54 @@ async function handleCommandInBackground(
         }
         break;
       }
-            case "send_draft": {
+          case "send_draft": {
         const name = command.params.customer_name;
+
+        // No name given → auto-resolve if there's exactly one pending draft
         if (!name) {
-          reply =
-            "Who should I send to? Try *send Ahmed* or *send Sara*.";
+          try {
+            const pending = await prisma.pendingDraft.findMany({
+              where: {
+                whatsappAccountId: accountId,
+                status: "pending",
+                expiresAt: { gt: new Date() },
+              },
+              orderBy: { createdAt: "desc" },
+              take: 5,
+            });
+
+            if (pending.length === 0) {
+              reply = "No pending drafts to send.";
+              break;
+            }
+
+            if (pending.length > 1) {
+              const list = pending
+                .map(
+                  (d, i) =>
+                    `${i + 1}. *${d.customerName || d.customerPhone}*`
+                )
+                .join("\n");
+              reply = `Which draft? Reply *send [name]*:\n\n${list}`;
+              break;
+            }
+
+            // Exactly one — auto-send
+            const single = pending[0];
+            const result = await approveAndSendDraft(single.id);
+
+            if (!result.ok) {
+              reply = `Could not send: ${result.error}.`;
+              break;
+            }
+
+            reply = `✓ Sent reply to *${
+              single.customerName || single.customerPhone
+            }*`;
+          } catch (err) {
+            console.error("[send-draft] auto-resolve failed:", err);
+            reply = "Failed to send the draft.";
+          }
           break;
         }
 
@@ -1282,6 +1325,7 @@ function quickCommandCheck(text: string): boolean {
     /^hafte/i,
     /^this week/i,
     /^send\s+\w+/i,
+    /^send$/i,
     /^send draft\s+\w+/i,
     /^send reply\s+\w+/i,
     /^send to\s+\w+/i,
