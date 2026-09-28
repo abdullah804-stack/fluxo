@@ -41,6 +41,12 @@ const I = {
       <path d="M21 12a8 8 0 0 1-11.6 7.1L3 20l1-4.6A8 8 0 1 1 21 12z" />
     </svg>
   ),
+  chart: (
+    <svg {...P}>
+      <path d="M3 3v18h18" />
+      <path d="m7 14 3-3 3 3 4-6" />
+    </svg>
+  ),
   gear: (
     <svg {...P}>
       <circle cx="12" cy="12" r="3" />
@@ -68,6 +74,7 @@ const nav = [
   { href: "/dashboard/orders", label: "Orders", icon: I.package },
   { href: "/dashboard/customers", label: "Customers", icon: I.users },
   { href: "/dashboard/messages", label: "Messages", icon: I.msg },
+  { href: "/dashboard/analytics", label: "Analytics", icon: I.chart },
 ];
 
 const ACCENT = "#3B6BFF";
@@ -121,7 +128,7 @@ export function Sidebar({ email, name }: { email: string; name: string }) {
 
   return (
     <aside
-      className="fixed inset-y-0 left-0 z-10 flex w-64 flex-col border-r bg-white"
+      className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r bg-white"
       style={{ borderColor: "#E6EAF5" }}
     >
       {/* Logo */}
