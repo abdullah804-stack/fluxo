@@ -19,6 +19,8 @@ const VALID_INTENTS = [
   "summary",
   "list_pending",
   "list_unpaid",
+  "list_repeat",
+  "weekly_report",
   "mark_shipped",
   "mark_delivered",
   "cancel",

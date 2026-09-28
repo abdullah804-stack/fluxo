@@ -11,37 +11,71 @@ const LINE_SOFT = "#F3F5FB";
 const TEXT_PRIMARY = "#0B1220";
 const TEXT_SECONDARY = "#556075";
 const TEXT_MUTED = "#8B95AB";
-const ACCENT = "#3B6BFF";
+
+type SP = { q?: string; repeat?: string };
 
 export default async function Customers({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<SP>;
 }) {
-  const { q } = await searchParams;
+  const sp = await searchParams;
   const { user, scope } = await getCtx();
   const base =
     (user as { baseCurrency?: string }).baseCurrency ?? "USD";
 
+  const onlyRepeat = sp.repeat === "1";
+
   const customers = await prisma.customer.findMany({
     where: {
       ...scope,
-      ...(q && {
+      ...(sp.q && {
         OR: [
-          { name: { contains: q, mode: "insensitive" } },
-          { phone: { contains: q } },
+          { name: { contains: sp.q, mode: "insensitive" } },
+          { phone: { contains: sp.q } },
         ],
       }),
     },
     include: {
       orders: {
-        select: { total: true, baseAmount: true, createdAt: true },
+        where: { status: { not: "cancelled" } },
+        select: {
+          total: true,
+          baseAmount: true,
+          originalAmount: true,
+          createdAt: true,
+        },
         orderBy: { createdAt: "desc" },
       },
     },
     orderBy: { createdAt: "desc" },
     take: 200,
   });
+
+  const withStats = customers.map((c) => {
+    const orderCount = c.orders.length;
+        const totalBase = c.orders.reduce(
+      (s, o) => s + Number(o.baseAmount ?? 0),
+      0
+    );
+    const lastOrderDate = c.orders[0] ? c.orders[0].createdAt : null;
+    return {
+      id: c.id,
+      name: c.name,
+      phone: c.phone,
+      orderCount,
+      totalBase,
+      lastOrderDate,
+      isRepeat: orderCount >= 2,
+    };
+  });
+
+  const repeatCount = withStats.filter((c) => c.isRepeat).length;
+  const list = onlyRepeat
+    ? withStats.filter((c) => c.isRepeat)
+    : withStats;
+
+  const qParam = sp.q ? `q=${encodeURIComponent(sp.q)}` : "";
 
   return (
     <>
@@ -50,9 +84,10 @@ export default async function Customers({
         subtitle="Everyone who's messaged your business."
         actions={
           <form>
+            {onlyRepeat && <input type="hidden" name="repeat" value="1" />}
             <input
               name="q"
-              defaultValue={q}
+              defaultValue={sp.q}
               placeholder="Search name or phone"
               aria-label="Search customers"
               className="w-64 rounded-lg px-3 py-2 text-sm outline-none transition-colors duration-150"
@@ -66,10 +101,39 @@ export default async function Customers({
         }
       />
 
-      {customers.length === 0 ? (
+      <div className="mb-4 flex items-center gap-2 text-sm">
+        <Link
+          href={`/dashboard/customers${qParam ? `?${qParam}` : ""}`}
+          className="rounded-lg px-3 py-1.5 font-medium transition-colors"
+          style={{
+            background: !onlyRepeat ? "#EDF0F8" : "transparent",
+            color: !onlyRepeat ? TEXT_PRIMARY : TEXT_SECONDARY,
+          }}
+        >
+          All ({withStats.length})
+        </Link>
+        <Link
+          href={`/dashboard/customers?repeat=1${qParam ? `&${qParam}` : ""}`}
+          className="rounded-lg px-3 py-1.5 font-medium transition-colors"
+          style={{
+            background: onlyRepeat ? "#EDF0F8" : "transparent",
+            color: onlyRepeat ? TEXT_PRIMARY : TEXT_SECONDARY,
+          }}
+        >
+          Repeat ({repeatCount})
+        </Link>
+      </div>
+
+      {list.length === 0 ? (
         <EmptyState
-          title="No customers yet"
-          subtitle="Each person who messages your business is recorded here with their order history."
+          title={
+            onlyRepeat ? "No repeat customers yet" : "No customers yet"
+          }
+          subtitle={
+            onlyRepeat
+              ? "Customers appear here once they've ordered twice or more."
+              : "Each person who messages your business is recorded here with their order history."
+          }
           icon={
             <svg
               width="28"
@@ -121,63 +185,60 @@ export default async function Customers({
               </tr>
             </thead>
             <tbody>
-              {customers.map((c) => {
-                const ordersCount = c.orders.length;
-
-                // Sum only converted baseAmount. Skip orders without conversion.
-                const totalBase = c.orders.reduce(
-                  (s, o) => s + Number(o.baseAmount ?? o.total ?? 0),
-                  0
-                );
-
-                const lastOrderDate = c.orders[0]
-                  ? c.orders[0].createdAt
-                  : null;
-
-                return (
-                  <tr
-                    key={c.id}
-                    className="relative transition-colors duration-150 hover:bg-[#F0F4FF]"
-                    style={{ borderBottom: `1px solid ${LINE_SOFT}` }}
+              {list.map((c) => (
+                <tr
+                  key={c.id}
+                  className="relative transition-colors duration-150 hover:bg-[#F0F4FF]"
+                  style={{ borderBottom: `1px solid ${LINE_SOFT}` }}
+                >
+                  <td
+                    className="px-5 py-3.5 font-medium"
+                    style={{ color: TEXT_PRIMARY }}
                   >
-                    <td
-                      className="px-5 py-3.5 font-medium"
-                      style={{ color: TEXT_PRIMARY }}
+                    <Link
+                      href={`/dashboard/customers/${c.id}`}
+                      className="after:absolute after:inset-0"
                     >
-                      <Link
-                        href={`/dashboard/customers/${c.id}`}
-                        className="after:absolute after:inset-0"
+                      {c.name ?? c.phone}
+                    </Link>
+                    {c.isRepeat && (
+                      <span
+                        className="ml-2 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        style={{
+                          background: "#FFF3E0",
+                          color: "#B45309",
+                        }}
                       >
-                        {c.name ?? c.phone}
-                      </Link>
-                    </td>
-                    <td
-                      className="tnum px-5 py-3.5 text-right"
-                      style={{ color: TEXT_SECONDARY }}
-                    >
-                      {ordersCount}
-                    </td>
-                    <td className="px-5 py-3.5 text-right">
-                      <Money
-                        amount={totalBase}
-                        currency={base}
-                        size="md"
-                      />
-                    </td>
-                    <td
-                      className="tnum px-5 py-3.5"
-                      style={{ color: TEXT_SECONDARY }}
-                    >
-                      {lastOrderDate
-                        ? lastOrderDate.toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                          })
-                        : "—"}
-                    </td>
-                  </tr>
-                );
-              })}
+                        Repeat
+                      </span>
+                    )}
+                  </td>
+                  <td
+                    className="tnum px-5 py-3.5 text-right"
+                    style={{ color: TEXT_SECONDARY }}
+                  >
+                    {c.orderCount}
+                  </td>
+                  <td className="px-5 py-3.5 text-right">
+                    <Money
+                      amount={c.totalBase}
+                      currency={base}
+                      size="md"
+                    />
+                  </td>
+                  <td
+                    className="tnum px-5 py-3.5"
+                    style={{ color: TEXT_SECONDARY }}
+                  >
+                    {c.lastOrderDate
+                      ? c.lastOrderDate.toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })
+                      : "—"}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

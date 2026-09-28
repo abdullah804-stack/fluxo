@@ -2,7 +2,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCtx, ago, itemsSummary, orderTone, orderLabel } from "../../_lib";
+import {
+  getCtx,
+  ago,
+  itemsSummary,
+  orderTone,
+  orderLabel,
+} from "../../_lib";
 import { PageHeader } from "../../_components/PageHeader";
 import { StatusChip } from "../../_components/StatusChip";
 import { Money } from "../../_components/Money";
@@ -12,7 +18,6 @@ const LINE_SOFT = "#F3F5FB";
 const TEXT_PRIMARY = "#0B1220";
 const TEXT_SECONDARY = "#556075";
 const TEXT_MUTED = "#8B95AB";
-const ACCENT = "#3B6BFF";
 
 export default async function CustomerDetail({
   params,
@@ -35,10 +40,14 @@ export default async function CustomerDetail({
 
   if (!customer) notFound();
 
-  const ordersCount = customer.orders.length;
+  const nonCancelled = customer.orders.filter(
+    (o) => o.status !== "cancelled"
+  );
+  const ordersCount = nonCancelled.length;
+  const isRepeat = ordersCount >= 2;
 
-  const totalBase = customer.orders.reduce(
-    (s, o) => s + Number(o.baseAmount ?? o.total ?? 0),
+    const totalBase = nonCancelled.reduce(
+    (s, o) => s + Number(o.baseAmount ?? 0),
     0
   );
 
@@ -47,7 +56,7 @@ export default async function CustomerDetail({
     : null;
 
   const unpaidCount = customer.orders.filter(
-    (o) => o.paymentStatus === "unpaid"
+    (o) => o.paymentStatus === "unpaid" && o.status !== "cancelled"
   ).length;
 
   const displayName = customer.name ?? customer.phone;

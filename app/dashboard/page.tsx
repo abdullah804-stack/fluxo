@@ -30,13 +30,18 @@ export default async function Overview() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const week = new Date(Date.now() - 7 * 864e5);
-  const unpaid = { ...scope, paymentStatus: "unpaid" };
+  const unpaid = {
+    ...scope,
+    paymentStatus: "unpaid",
+    status: { not: "cancelled" },
+  };
 
   const [
     todayN,
     pending,
     unpaidN,
-    uBase,
+    unpaidConverted,
+    unpaidUnconverted,
     customers,
     newCust,
     orders,
@@ -52,6 +57,9 @@ export default async function Overview() {
       where: { ...unpaid, baseAmount: { not: null } },
       _sum: { baseAmount: true },
     }),
+    prisma.order.count({
+      where: { ...unpaid, baseAmount: null },
+    }),
     prisma.customer.count({ where: scope }),
     prisma.customer.count({
       where: { ...scope, createdAt: { gte: week } },
@@ -64,7 +72,7 @@ export default async function Overview() {
     }),
   ]);
 
-  const unpaidTotal = Number(uBase._sum.baseAmount ?? 0);
+  const unpaidTotal = Number(unpaidConverted._sum.baseAmount ?? 0);
 
   return (
     <>
@@ -114,7 +122,11 @@ export default async function Overview() {
           label="Unpaid"
           value={unpaidTotal}
           currency={base}
-          delta={`${unpaidN} open`}
+          delta={
+            unpaidUnconverted > 0
+              ? `${unpaidN} open · ${unpaidUnconverted} unconverted`
+              : `${unpaidN} open`
+          }
           deltaTone={unpaidN ? "down" : "flat"}
           icon={
             <svg {...P}>

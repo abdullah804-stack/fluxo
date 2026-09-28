@@ -11,7 +11,7 @@ CRITICAL RULES:
 Supported commands and their params:
 
 {
-  "intent": "summary" | "list_pending" | "list_unpaid" | "mark_delivered" | "mark_shipped" | "cancel" | "mark_paid" | "invoice" | "remind" | "remind_one" | "search" | "help" | "unknown",
+  "intent": "summary" | "list_pending" | "list_unpaid" | "list_repeat" | "weekly_report" | "mark_delivered" | "mark_shipped" | "cancel" | "mark_paid" | "invoice" | "remind" | "remind_one" | "search" | "help" | "unknown",
   "confidence": 0.0-1.0,
   "params": {
     "customer_name": string | null,
@@ -25,6 +25,8 @@ INTERPRETATION:
 - "summary" / "summary dikhao" / "aaj ka summary" → intent: summary
 - "pending" / "show pending" / "pending orders" → intent: list_pending
 - "who owes me" / "kis ne paise nahi diye" / "unpaid" → intent: list_unpaid
+- "repeat customers" / "repeating customer" / "loyal customers" / "returning customers" / "repeat buyers" / "best customers" / "top customers" / "frequent customers" / "bar bar order karne wale" → intent: list_repeat
+- "weekly report" / "weekly" / "this week" / "hafte ki report" / "hafte ka summary" / "weekly summary" / "week report" / "show week" → intent: weekly_report
 - "shipped Sara" / "Sara ko bhej diya" / "out for delivery Ali" / "mark shipped Ali" → intent: mark_shipped, params.customer_name
 - "delivered Sara" / "Sara ko deliver kar diya" / "mark delivered Ali" → intent: mark_delivered, params.customer_name
 - "cancel Sara" / "cancel order Sara" / "Sara ka order cancel karo" → intent: cancel, params.customer_name

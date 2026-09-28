@@ -14,6 +14,10 @@ import { generateInvoicePdf } from "@/lib/invoice/generate";
 import { sendRemindersForAccount } from "@/lib/whatsapp/reminders";
 import { searchMessages, ago } from "@/lib/whatsapp/search";
 import {
+  computeWeeklyReport,
+  formatWeeklyReport,
+} from "@/lib/reports/weekly";
+import {
   sendWhatsAppMessage,
   sendWhatsAppDocument,
 } from "@/lib/whatsapp/send";
@@ -413,9 +417,15 @@ async function handleCommandInBackground(
     let reply = "";
 
     switch (command.intent) {
-      case "summary": {
+            case "summary": {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+
+        const account = await prisma.whatsAppAccount.findUnique({
+          where: { id: accountId },
+          include: { user: true },
+        });
+        const baseCurrency = account?.user.baseCurrency || "USD";
 
         const todaysOrders = await prisma.order.count({
           where: {
@@ -432,18 +442,31 @@ async function handleCommandInBackground(
           where: {
             whatsappAccountId: accountId,
             paymentStatus: "unpaid",
+            status: { not: "cancelled" },
           },
-          select: { total: true },
+          select: { baseAmount: true },
         });
 
         const owedTotal = unpaidOrders.reduce(
-          (sum, o) => sum + (o.total || 0),
+          (sum, o) => sum + Number(o.baseAmount ?? 0),
           0
         );
 
-        reply = `📊 *Today's Summary*\n\nOrders today: ${todaysOrders}\nPending: ${pending}\nUnpaid total: ${owedTotal.toFixed(
-          0
-        )}\n\nReply *pending* for the list.`;
+        const unconverted = unpaidOrders.filter(
+          (o) => o.baseAmount === null || o.baseAmount === undefined
+        ).length;
+
+        const unconvertedNote =
+          unconverted > 0
+            ? `\n_${unconverted} order${
+                unconverted > 1 ? "s" : ""
+              } couldn't be converted_`
+            : "";
+
+        reply = `📊 *Today's Summary*\n\nOrders today: ${todaysOrders}\nPending: ${pending}\nUnpaid total: ${formatAmount(
+          owedTotal,
+          baseCurrency
+        )}${unconvertedNote}\n\nReply *pending* for the list.`;
         break;
       }
 
@@ -469,11 +492,18 @@ async function handleCommandInBackground(
         break;
       }
 
-      case "list_unpaid": {
+            case "list_unpaid": {
+        const account = await prisma.whatsAppAccount.findUnique({
+          where: { id: accountId },
+          include: { user: true },
+        });
+        const baseCurrency = account?.user.baseCurrency || "USD";
+
         const unpaid = await prisma.order.findMany({
           where: {
             whatsappAccountId: accountId,
             paymentStatus: "unpaid",
+            status: { not: "cancelled" },
           },
           include: { customer: true },
           orderBy: { createdAt: "desc" },
@@ -482,18 +512,107 @@ async function handleCommandInBackground(
         if (unpaid.length === 0) {
           reply = "✓ Everyone has paid.";
         } else {
-          const total = unpaid.reduce((s, o) => s + (o.total || 0), 0);
+          const total = unpaid.reduce(
+            (s, o) => s + Number(o.baseAmount ?? 0),
+            0
+          );
+
+          const unconverted = unpaid.filter(
+            (o) => o.baseAmount === null || o.baseAmount === undefined
+          ).length;
+
           const lines = unpaid.map((o, i) => {
-            const name = o.customer.name || o.customer.phone;
-            return `${i + 1}. ${name} — ${o.total || "?"}`;
+            const name =
+              o.recipientName || o.customer.name || o.customer.phone;
+            const originalCur = o.originalCurrency || baseCurrency;
+            const originalAmt = Number(
+              o.originalAmount ?? o.total ?? 0
+            );
+            const display =
+              originalCur === baseCurrency
+                ? formatAmount(originalAmt, originalCur)
+                : `${formatAmount(originalAmt, originalCur)} (≈ ${formatAmount(
+                    Number(o.baseAmount ?? 0),
+                    baseCurrency
+                  )})`;
+            return `${i + 1}. ${name} — ${display}`;
           });
+
+          const unconvertedNote =
+            unconverted > 0
+              ? `\n_${unconverted} order${
+                  unconverted > 1 ? "s" : ""
+                } couldn't be converted_`
+              : "";
+
           reply = `💰 *Unpaid Orders*\n\n${lines.join(
             "\n"
-          )}\n\n*Total owed:* ${total.toFixed(0)}`;
+          )}\n\n*Total owed:* ${formatAmount(
+            total,
+            baseCurrency
+          )}${unconvertedNote}`;
         }
         break;
       }
+            case "list_repeat": {
+        const repeatCustomers = await prisma.customer.findMany({
+          where: {
+            whatsappAccountId: accountId,
+            orders: {
+              some: {
+                status: { not: "cancelled" },
+              },
+            },
+          },
+          include: {
+            orders: {
+              where: { status: { not: "cancelled" } },
+              select: {
+                id: true,
+                baseAmount: true,
+                total: true,
+                originalAmount: true,
+              },
+            },
+          },
+        });
 
+        const eligible = repeatCustomers
+          .map((c) => {
+            const orderCount = c.orders.length;
+            const totalSpent = c.orders.reduce(
+              (s, o) =>
+                s +
+                Number(o.baseAmount ?? o.originalAmount ?? o.total ?? 0),
+              0
+            );
+            return {
+              name: c.name || c.phone,
+              orderCount,
+              totalSpent,
+            };
+          })
+          .filter((c) => c.orderCount >= 2)
+          .sort((a, b) => b.orderCount - a.orderCount)
+          .slice(0, 10);
+
+        if (eligible.length === 0) {
+          reply = "✓ No repeat customers yet.";
+          break;
+        }
+
+        const lines = eligible.map(
+          (c, i) =>
+            `${i + 1}. *${c.name}* — ${c.orderCount} orders — Rs ${c.totalSpent.toFixed(
+              0
+            )}`
+        );
+
+        reply = `⭐ *Repeat Customers* (${eligible.length})\n\n${lines.join(
+          "\n"
+        )}`;
+        break;
+      }
       case "mark_delivered": {
         const name = command.params.customer_name;
         if (!name) {
@@ -820,6 +939,23 @@ async function handleCommandInBackground(
         }
         break;
       }
+            case "weekly_report": {
+        try {
+          console.log("[weekly] generating report");
+
+          const report = await computeWeeklyReport(accountId);
+          if (!report) {
+            reply = "Could not generate the weekly report.";
+            break;
+          }
+
+          reply = formatWeeklyReport(report);
+        } catch (err) {
+          console.error("[weekly] failed:", err);
+          reply = "Failed to generate the weekly report.";
+        }
+        break;
+      }
       case "mark_paid": {
         const name = command.params.customer_name;
         if (!name) {
@@ -860,8 +996,7 @@ async function handleCommandInBackground(
 
       case "help":
       default: {
-                                reply = `*Fluxo Commands*\n\n• *summary* — today's business\n• *pending* — list pending orders\n• *who owes me* — unpaid orders\n• *shipped [name]* — mark out for delivery\n• *delivered [name]* — mark delivered\n• *cancel [name]* — cancel the order\n• *paid [name]* — mark paid\n• *invoice [name]* — send an invoice\n• *remind all* — remind unpaid customers\n• *remind [name]* — remind one customer\n• *search [keyword]* — find past messages`;
-        break;
+                                                reply = `*Fluxo Commands*\n\n• *summary* — today's business\n• *pending* — list pending orders\n• *who owes me* — unpaid orders\n• *repeat customers* — loyal buyers\n• *weekly report* — this week's stats\n• *shipped [name]* — mark out for delivery\n• *delivered [name]* — mark delivered\n• *cancel [name]* — cancel the order\n• *paid [name]* — mark paid\n• *invoice [name]* — send an invoice\n• *remind all* — remind unpaid customers\n• *remind [name]* — remind one customer\n• *search [keyword]* — find past messages`;
       }
     }
 
@@ -912,6 +1047,19 @@ function quickCommandCheck(text: string): boolean {
     /^search\b/i,
     /^dhundo\b/i,
     /^sab ko remind/i,
+    /^repeat/i,
+    /^repeating/i,
+    /^loyal/i,
+    /^returning/i,
+    /^top customer/i,
+    /^best customer/i,
+    /^bar bar order/i,
+        /^frequent/i,
+    /^weekly/i,
+    /^week report/i,
+    /^week summary/i,
+    /^hafte/i,
+    /^this week/i,
   ];
 
   for (const p of patterns) {
