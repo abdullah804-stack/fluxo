@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getCtx, intentOf, intentTone } from "../../_lib";
 import { PageHeader } from "../../_components/PageHeader";
 import { StatusChip } from "../../_components/StatusChip";
+import DraftReply from "./DraftReply";
 
 const BORDER = "#E6EAF5";
 const LINE_SOFT = "#F3F5FB";
@@ -12,6 +13,11 @@ const TEXT_PRIMARY = "#0B1220";
 const TEXT_SECONDARY = "#556075";
 const TEXT_MUTED = "#8B95AB";
 const ACCENT = "#3B6BFF";
+
+type StoredDraft = {
+  text: string;
+  generatedAt: string;
+};
 
 export default async function MessageDetail({
   params,
@@ -149,6 +155,16 @@ export default async function MessageDetail({
               )}
             </p>
           </div>
+                    {/* Suggested reply */}
+          {isInbound && m.content && (
+            <DraftReply
+              messageId={m.id}
+              initialDraft={
+                (m as { draftReply?: StoredDraft | null }).draftReply ??
+                null
+              }
+            />
+          )}
 
           {/* Extracted data */}
           <h2

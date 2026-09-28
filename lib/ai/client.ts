@@ -13,6 +13,8 @@ interface ChatOptions {
   temperature?: number;
   models?: string[];
   maxRetries?: number;
+  /** Force JSON output. Default true (extraction use case). Set false for text output. */
+  json?: boolean;
 }
 
 /**
@@ -56,6 +58,7 @@ export async function chat({
   temperature = 0.2,
   models,
   maxRetries = 2,
+  json = true,
 }: ChatOptions): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
@@ -78,11 +81,13 @@ export async function chat({
               "HTTP-Referer": "https://fluxo.app",
               "X-Title": "Fluxo",
             },
-            body: JSON.stringify({
+                        body: JSON.stringify({
               model,
               messages,
               temperature,
-              response_format: { type: "json_object" },
+              ...(json
+                ? { response_format: { type: "json_object" } }
+                : {}),
               provider: {
                 sort: "throughput",
                 allow_fallbacks: true,
