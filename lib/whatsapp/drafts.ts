@@ -53,6 +53,28 @@ export async function createPendingDraft({
  * Excludes drafts that have expired (expiresAt < now) even if the cron
  * hasn't run yet — so the owner never sees stale entries.
  */
+
+/**
+ * Lists the most recent pending drafts for an account.
+ * Excludes expired ones.
+ */
+export async function listPendingDrafts({
+  accountId,
+  limit = 10,
+}: {
+  accountId: string;
+  limit?: number;
+}) {
+  return prisma.pendingDraft.findMany({
+    where: {
+      whatsappAccountId: accountId,
+      status: "pending",
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+}
 export async function findPendingDraftsByName({
   accountId,
   name,

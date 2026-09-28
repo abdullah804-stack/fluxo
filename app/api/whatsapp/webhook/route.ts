@@ -22,6 +22,9 @@ import { notifyOwnerWithDraft } from "@/lib/whatsapp/notify-draft";
 import {
   findPendingDraftsByName,
   approveAndSendDraft,
+  skipDraft,
+  editDraftText,
+  listPendingDrafts,
 } from "@/lib/whatsapp/drafts";
 import {
   sendWhatsAppMessage,
@@ -1024,6 +1027,152 @@ async function handleCommandInBackground(
         }
         break;
       }
+
+            case "edit_draft": {
+        const name = command.params.customer_name;
+        const newText = (command.params.query || "").trim();
+
+        if (!name) {
+          reply =
+            "Who should I edit? Try *edit Ahmed [new reply text]*.";
+          break;
+        }
+        if (!newText) {
+          reply =
+            "What should the new reply say? Try *edit Ahmed Hi Ahmed, blue kurti available hai Rs 1,800*.";
+          break;
+        }
+
+        try {
+          console.log("[edit-draft] editing for:", name);
+
+          const matches = await findPendingDraftsByName({
+            accountId,
+            name,
+          });
+
+          if (matches.length === 0) {
+            reply = `No pending draft found for *${name}*.`;
+            break;
+          }
+
+          if (matches.length > 1) {
+            reply = `Multiple pending drafts match *${name}*. Please use the full name.`;
+            break;
+          }
+
+          const draft = matches[0];
+          await editDraftText(draft.id, newText);
+
+          // Also refresh the draft on the message row so the dashboard
+          // shows the updated version.
+          try {
+            await prisma.message.update({
+              where: { id: draft.messageId },
+              data: {
+                draftReply: {
+                  text: newText,
+                  generatedAt: new Date().toISOString(),
+                } as any,
+              },
+            });
+          } catch (logErr) {
+            console.warn("[edit-draft] message sync failed:", logErr);
+          }
+
+          reply = `✓ Updated draft for *${
+            draft.customerName || draft.customerPhone
+          }*:\n\n${newText}\n\nReply *send ${
+            draft.customerName || draft.customerPhone
+          }* to send it.`;
+        } catch (err) {
+          console.error("[edit-draft] failed:", err);
+          reply = "Failed to edit the draft.";
+        }
+        break;
+      }
+
+      case "skip_draft": {
+        const name = command.params.customer_name;
+        if (!name) {
+          reply =
+            "Who should I skip? Try *skip Ahmed* or *skip Sara*.";
+          break;
+        }
+
+        try {
+          console.log("[skip-draft] skipping for:", name);
+
+          const matches = await findPendingDraftsByName({
+            accountId,
+            name,
+          });
+
+          if (matches.length === 0) {
+            reply = `No pending draft found for *${name}*.`;
+            break;
+          }
+
+          if (matches.length > 1) {
+            reply = `Multiple pending drafts match *${name}*. Please use the full name.`;
+            break;
+          }
+
+          const draft = matches[0];
+          await skipDraft(draft.id);
+
+          reply = `✓ Skipped the draft for *${
+            draft.customerName || draft.customerPhone
+          }*.`;
+        } catch (err) {
+          console.error("[skip-draft] failed:", err);
+          reply = "Failed to skip the draft.";
+        }
+        break;
+      }
+
+      case "list_drafts": {
+        try {
+          console.log("[list-drafts] listing");
+
+          const drafts = await listPendingDrafts({
+            accountId,
+            limit: 10,
+          });
+
+          if (drafts.length === 0) {
+            reply = "✓ No pending drafts.";
+            break;
+          }
+
+          const lines = drafts.map((d, i) => {
+            const who = d.customerName || d.customerPhone;
+            const preview =
+              d.draftText.length > 50
+                ? d.draftText.slice(0, 50) + "…"
+                : d.draftText;
+            const hoursAgo = Math.max(
+              0,
+              Math.floor(
+                (Date.now() - new Date(d.createdAt).getTime()) / 3600000
+              )
+            );
+            const when =
+              hoursAgo < 1
+                ? "just now"
+                : `${hoursAgo}h ago`;
+            return `${i + 1}. *${who}* — ${preview} · ${when}`;
+          });
+
+          reply = `📝 *Pending drafts* (${drafts.length})\n\n${lines.join(
+            "\n"
+          )}\n\nReply *send [name]* to send, *edit [name] [text]* to change, *skip [name]* to discard.`;
+        } catch (err) {
+          console.error("[list-drafts] failed:", err);
+          reply = "Failed to list drafts.";
+        }
+        break;
+      }
       case "mark_paid": {
         const name = command.params.customer_name;
         if (!name) {
@@ -1064,7 +1213,7 @@ async function handleCommandInBackground(
 
       case "help":
       default: {
-        reply = `*Fluxo Commands*\n\n• *summary* — today's business\n• *pending* — list pending orders\n• *who owes me* — unpaid orders\n• *repeat customers* — loyal buyers\n• *weekly report* — this week's stats\n• *shipped [name]* — mark out for delivery\n• *delivered [name]* — mark delivered\n• *cancel [name]* — cancel the order\n• *paid [name]* — mark paid\n• *invoice [name]* — send an invoice\n• *remind all* — remind unpaid customers\n• *remind [name]* — remind one customer\n• *send [name]* — send the pending draft reply\n• *search [keyword]* — find past messages`;      }
+                reply = `*Fluxo Commands*\n\n• *summary* — today's business\n• *pending* — list pending orders\n• *who owes me* — unpaid orders\n• *repeat customers* — loyal buyers\n• *weekly report* — this week's stats\n• *shipped [name]* — mark out for delivery\n• *delivered [name]* — mark delivered\n• *cancel [name]* — cancel the order\n• *paid [name]* — mark paid\n• *invoice [name]* — send an invoice\n• *remind all* — remind unpaid customers\n• *remind [name]* — remind one customer\n• *drafts* — list pending draft replies\n• *send [name]* — send the pending draft reply\n• *edit [name] [text]* — change the pending draft\n• *skip [name]* — discard the pending draft\n• *search [keyword]* — find past messages`;      }
     }
 
     await sendWhatsAppMessage(replyTo, reply);
@@ -1083,13 +1232,18 @@ async function handleCommandInBackground(
 function quickCommandCheck(text: string): boolean {
   const t = text.trim().toLowerCase();
 
-  const exactCommands = [
+    const exactCommands = [
     "summary",
     "help",
     "pending",
     "unpaid",
     "commands",
     "today",
+    "drafts",
+    "pending drafts",
+    "show drafts",
+    "list drafts",
+    "my drafts",
   ];
   if (exactCommands.includes(t)) return true;
 
@@ -1132,6 +1286,14 @@ function quickCommandCheck(text: string): boolean {
     /^send reply\s+\w+/i,
     /^send to\s+\w+/i,
     /^approve\s+\w+/i,
+    /^edit\s+\w+/i,
+    /^change\s+\w+/i,
+    /^update reply\s+\w+/i,
+    /^rewrite\s+\w+/i,
+    /^skip\s+\w+/i,
+    /^discard\s+\w+/i,
+    /^reject\s+\w+/i,
+    /^don'?t send\s+\w+/i,
   ];
 
   for (const p of patterns) {
