@@ -14,7 +14,7 @@ export default async function ProductsPage() {
     (user as { businessType?: string | null }).businessType
   );
 
-  const products = account
+    const products = account
     ? await listProducts({
         accountId: account.id,
         includeInactive: true,
@@ -27,7 +27,7 @@ export default async function ProductsPage() {
         title={businessMeta.itemPlural}
         subtitle={`Your catalogue of ${businessMeta.itemPlural.toLowerCase()}. Prices are used to auto-fill customer orders.`}
       />
-      <ProductsClient
+            <ProductsClient
         initialProducts={products.map((p) => ({
           id: p.id,
           name: p.name,
@@ -35,6 +35,13 @@ export default async function ProductsPage() {
           currency: p.currency,
           category: p.category,
           active: p.active,
+          variants: p.variants.map((v) => ({
+            id: v.id,
+            label: v.label,
+            price: v.price,
+            stock: v.stock,
+            active: v.active,
+          })),
         }))}
         baseCurrency={baseCurrency}
         itemSingular={businessMeta.itemSingular}

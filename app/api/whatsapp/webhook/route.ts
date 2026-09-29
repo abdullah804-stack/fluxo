@@ -1240,7 +1240,7 @@ async function handleCommandInBackground(
         }
         break;
       }
-            case "list_products": {
+        case "list_products": {
         try {
           const products = await listProducts({
             accountId,
@@ -1255,13 +1255,25 @@ async function handleCommandInBackground(
           }
 
           const lines = products.map((p, i) => {
-            const price = formatAmount(p.price, p.currency);
-            const category = p.category ? ` · ${p.category}` : "";
-            return `${i + 1}. *${p.name}* — ${price}${category}`;
+            const base = `${i + 1}. *${p.name}* — ${formatAmount(
+              p.price,
+              p.currency
+            )}${p.category ? ` · ${p.category}` : ""}`;
+            const activeVariants = p.variants.filter((v) => v.active);
+            if (activeVariants.length === 0) return base;
+            const variantLines = activeVariants
+              .map(
+                (v) =>
+                  `   • ${v.label} — ${formatAmount(v.price, p.currency)}${
+                    v.stock === 0 ? " (out of stock)" : ""
+                  }`
+              )
+              .join("\n");
+            return `${base}\n${variantLines}`;
           });
 
           reply = `🛍 *Your catalogue* (${products.length})\n\n${lines.join(
-            "\n"
+            "\n\n"
           )}`;
         } catch (err) {
           console.error("[list-products] failed:", err);
@@ -1269,6 +1281,7 @@ async function handleCommandInBackground(
         }
         break;
       }
+
       case "mark_paid": {
         const name = command.params.customer_name;
         if (!name) {
