@@ -1,6 +1,7 @@
 // lib/ai/draft-reply.ts
 import { prisma } from "@/lib/prisma";
 import { chat } from "@/lib/ai/client";
+import { buildCatalogueSummary } from "@/lib/products/catalogue-context";
 
 const DRAFT_SYSTEM_PROMPT = `You draft WhatsApp replies for a small business owner. You are given:
 1. A customer's incoming question or message.
@@ -41,6 +42,19 @@ WARM OPENERS
 - When the customer is placing an order, requesting something, or confirming, open warmly:
   "Bilkul", "Shukriya", "Ji haan", "Thanks", "Sure".
 - Skip the opener only for complaints or urgent status checks — then get to the point.
+
+PRODUCT CATALOGUE (HIGHEST PRIORITY)
+- You may be given a product catalogue with real prices. These are the ONLY
+  prices you are allowed to quote.
+- If the customer asks about a product that is in the catalogue, quote its
+  real price (or the matching variant's price if they mentioned a size,
+  colour, or weight).
+- If the customer asks about a product that is NOT in the catalogue, do
+  NOT invent a price. Say you will check and confirm shortly.
+- If the customer mentions a variant (e.g. "medium", "1 kg", "chocolate"),
+  and that variant exists in the catalogue for the matched product, use
+  the variant's price. Otherwise use the base product price.
+- Never quote an amount that is not in the catalogue.
 
 DO NOT
 - Do not invent facts (prices, availability, delivery dates) you were not given.
@@ -145,11 +159,21 @@ export async function generateDraftReply({
           .join("\n")
       : "(no recent orders)";
 
+        // Load catalogue summary so the AI can quote real prices.
+    const catalogueSummary = await buildCatalogueSummary(accountId, {
+      maxProducts: 30,
+      maxVariantsPerProduct: 8,
+    });
+
+    const catalogueSection = catalogueSummary
+      ? `\nProduct catalogue (REAL prices — always use these, never invent prices):\n${catalogueSummary}\n`
+      : `\nProduct catalogue: (empty — if the customer asks for a price, tell them you will confirm shortly.)\n`;
+
     const userPrompt = `Business: ${businessName}
 Base currency: ${baseCurrency}
 Customer name: ${customerName || "(unknown)"}
 Customer phone: +${customerPhone}
-
+${catalogueSection}
 Recent order context:
 ${orderContext}
 
@@ -163,7 +187,9 @@ Customer's incoming message:
 ${messageContent}
 """
 
-Write ONE short reply the owner can send as-is.`;
+Write ONE short reply the owner can send as-is. If the customer asked for a
+price and you see a matching product in the catalogue above, quote that
+price. If no match, do not invent a price — say you will confirm shortly.`;
 
     const raw = await chat({
       messages: [

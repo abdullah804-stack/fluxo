@@ -19,6 +19,8 @@ import {
 } from "@/lib/reports/weekly";
 import { notifyHighValueOrder } from "@/lib/whatsapp/notify-high-value";
 import { listProducts } from "@/lib/products/queries";
+import { findBestProductMatch, resolvePrice } from "@/lib/products/lookup";
+import { buildCatalogueSummary } from "@/lib/products/catalogue-context";
 
 import { notifyOwnerWithDraft } from "@/lib/whatsapp/notify-draft";
 
@@ -237,10 +239,24 @@ async function extractInBackground(
 
     const baseCurrency = owner?.baseCurrency || "USD";
 
-    const extracted = await extractMessage(
-      content,
-      `${owner?.name || "this business"}\nSeller base currency: ${baseCurrency}\nCustomer phone: +${fromNumber}`
-    );
+        // Load catalogue summary for extraction context
+    const catalogueSummary = await buildCatalogueSummary(accountId, {
+      maxProducts: 40,
+      maxVariantsPerProduct: 6,
+    });
+
+    const businessContext = [
+      `${owner?.businessName || owner?.name || "this business"}`,
+      `Seller base currency: ${baseCurrency}`,
+      `Customer phone: +${fromNumber}`,
+      catalogueSummary
+        ? `\nCatalogue (use real prices, do not invent):\n${catalogueSummary}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const extracted = await extractMessage(content, businessContext);
 
     await prisma.message.update({
       where: { id: messageId },
@@ -285,7 +301,78 @@ async function extractInBackground(
           data: { name: extracted.customer.name },
         });
       }
+            // ------------------------------------------------------------------
+      // Catalogue lookup: try to fill missing prices from the seller's
+      // product catalogue. We never override a price the customer gave.
+      // ------------------------------------------------------------------
+      if (Array.isArray(extracted.order.items) && extracted.order.items.length > 0) {
+        try {
+          const catalogue = await prisma.product.findMany({
+            where: { whatsappAccountId: accountId, active: true },
+            include: {
+              variants: {
+                where: { active: true },
+              },
+            },
+          });
 
+          if (catalogue.length > 0) {
+            const updatedItems = [...extracted.order.items];
+            let anyMatched = false;
+
+            for (let i = 0; i < updatedItems.length; i++) {
+              const item = updatedItems[i];
+              if (item.price != null && item.price > 0) continue; // customer gave a price
+
+              // Build a query from the item name plus any modifiers
+              const queryParts = [item.name || ""];
+              // (Scheduling and quantity are not part of the query)
+
+              const match = findBestProductMatch(
+                queryParts.join(" "),
+                catalogue
+              );
+
+              if (match) {
+                const unitPrice = resolvePrice(match);
+                updatedItems[i] = {
+                  ...item,
+                  price: unitPrice,
+                  // Preserve original item name but prefer the catalogue's canonical name
+                  name: match.product.name,
+                };
+                anyMatched = true;
+                console.log(
+                  `[catalogue] matched "${item.name}" → "${match.product.name}"${
+                    match.variant ? ` (${match.variant.label})` : ""
+                  } @ ${unitPrice}`
+                );
+              }
+            }
+
+            if (anyMatched) {
+              extracted.order.items = updatedItems;
+
+              // Recompute total as sum(quantity × price) — only if
+              // the AI didn't already give us a total.
+              if (extracted.order.total == null) {
+                const computed = updatedItems.reduce(
+                  (sum, it) => sum + (it.quantity ?? 1) * (it.price ?? 0),
+                  0
+                );
+                if (computed > 0) {
+                  extracted.order.total = computed;
+                  console.log(
+                    `[catalogue] recomputed total → ${computed}`
+                  );
+                }
+              }
+            }
+          }
+        } catch (catalogueErr) {
+          console.error("[catalogue] lookup failed:", catalogueErr);
+        }
+      }
       // Currency conversion
       const rawCurrency =
         extracted.order.currency?.trim().toUpperCase() || null;
@@ -1322,8 +1409,7 @@ async function handleCommandInBackground(
 
       case "help":
       default: {
-                reply = `*Fluxo Commands*\n\n• *summary* — today's business\n• *pending* — list pending orders\n• *who owes me* — unpaid orders\n• *repeat customers* — loyal buyers\n• *weekly report* — this week's stats\n• *shipped [name]* — mark out for delivery\n• *delivered [name]* — mark delivered\n• *cancel [name]* — cancel the order\n• *paid [name]* — mark paid\n• *invoice [name]* — send an invoice\n• *remind all* — remind unpaid customers\n• *remind [name]* — remind one customer\n• *drafts* — list pending draft replies\n• *send [name]* — send the pending draft reply\n• *edit [name] [text]* — change the pending draft\n• *skip [name]* — discard the pending draft\n• • *products* — list your catalogue
-• *search [keyword]* — find past messages`;      }
+                        reply = `*Fluxo Commands*\n\n• *summary* — today's business\n• *pending* — list pending orders\n• *who owes me* — unpaid orders\n• *repeat customers* — loyal buyers\n• *weekly report* — this week's stats\n• *products* — list your catalogue\n• *shipped [name]* — mark out for delivery\n• *delivered [name]* — mark delivered\n• *cancel [name]* — cancel the order\n• *paid [name]* — mark paid\n• *invoice [name]* — send an invoice\n• *remind all* — remind unpaid customers\n• *remind [name]* — remind one customer\n• *drafts* — list pending draft replies\n• *send [name]* — send the pending draft reply\n• *edit [name] [text]* — change the pending draft\n• *skip [name]* — discard the pending draft\n• *search [keyword]* — find past messages`;      }
     }
 
     await sendWhatsAppMessage(replyTo, reply);
