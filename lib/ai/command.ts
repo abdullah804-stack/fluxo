@@ -32,6 +32,7 @@ const VALID_INTENTS = [
   "edit_draft",
   "skip_draft",
   "list_drafts",
+  "list_products",
   "search",
   "help",
   "unknown",

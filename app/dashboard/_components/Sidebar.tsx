@@ -47,6 +47,12 @@ const I = {
       <path d="m7 14 3-3 3 3 4-6" />
     </svg>
   ),
+    tag: (
+    <svg {...P}>
+      <path d="M20.6 13.4 12 4.8H4.8V12l8.6 8.6a2 2 0 0 0 2.8 0l4.4-4.4a2 2 0 0 0 0-2.8z" />
+      <circle cx="7.5" cy="7.5" r="1.2" />
+    </svg>
+  ),
   gear: (
     <svg {...P}>
       <circle cx="12" cy="12" r="3" />
@@ -69,9 +75,11 @@ const I = {
   ),
 };
 
+
 const nav = [
   { href: "/dashboard", label: "Overview", icon: I.grid, exact: true },
   { href: "/dashboard/orders", label: "Orders", icon: I.package },
+  { href: "/dashboard/products", label: "Products", icon: I.tag },
   { href: "/dashboard/customers", label: "Customers", icon: I.users },
   { href: "/dashboard/messages", label: "Messages", icon: I.msg },
   { href: "/dashboard/analytics", label: "Analytics", icon: I.chart },

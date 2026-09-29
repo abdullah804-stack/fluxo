@@ -18,6 +18,7 @@ import {
   formatWeeklyReport,
 } from "@/lib/reports/weekly";
 import { notifyHighValueOrder } from "@/lib/whatsapp/notify-high-value";
+import { listProducts } from "@/lib/products/queries";
 
 import { notifyOwnerWithDraft } from "@/lib/whatsapp/notify-draft";
 
@@ -1239,6 +1240,35 @@ async function handleCommandInBackground(
         }
         break;
       }
+            case "list_products": {
+        try {
+          const products = await listProducts({
+            accountId,
+            includeInactive: false,
+            limit: 30,
+          });
+
+          if (products.length === 0) {
+            reply =
+              "No products in your catalogue yet.\n\nAdd them at /dashboard/products so Fluxo can quote prices to customers.";
+            break;
+          }
+
+          const lines = products.map((p, i) => {
+            const price = formatAmount(p.price, p.currency);
+            const category = p.category ? ` · ${p.category}` : "";
+            return `${i + 1}. *${p.name}* — ${price}${category}`;
+          });
+
+          reply = `🛍 *Your catalogue* (${products.length})\n\n${lines.join(
+            "\n"
+          )}`;
+        } catch (err) {
+          console.error("[list-products] failed:", err);
+          reply = "Failed to load products.";
+        }
+        break;
+      }
       case "mark_paid": {
         const name = command.params.customer_name;
         if (!name) {
@@ -1279,7 +1309,8 @@ async function handleCommandInBackground(
 
       case "help":
       default: {
-                reply = `*Fluxo Commands*\n\n• *summary* — today's business\n• *pending* — list pending orders\n• *who owes me* — unpaid orders\n• *repeat customers* — loyal buyers\n• *weekly report* — this week's stats\n• *shipped [name]* — mark out for delivery\n• *delivered [name]* — mark delivered\n• *cancel [name]* — cancel the order\n• *paid [name]* — mark paid\n• *invoice [name]* — send an invoice\n• *remind all* — remind unpaid customers\n• *remind [name]* — remind one customer\n• *drafts* — list pending draft replies\n• *send [name]* — send the pending draft reply\n• *edit [name] [text]* — change the pending draft\n• *skip [name]* — discard the pending draft\n• *search [keyword]* — find past messages`;      }
+                reply = `*Fluxo Commands*\n\n• *summary* — today's business\n• *pending* — list pending orders\n• *who owes me* — unpaid orders\n• *repeat customers* — loyal buyers\n• *weekly report* — this week's stats\n• *shipped [name]* — mark out for delivery\n• *delivered [name]* — mark delivered\n• *cancel [name]* — cancel the order\n• *paid [name]* — mark paid\n• *invoice [name]* — send an invoice\n• *remind all* — remind unpaid customers\n• *remind [name]* — remind one customer\n• *drafts* — list pending draft replies\n• *send [name]* — send the pending draft reply\n• *edit [name] [text]* — change the pending draft\n• *skip [name]* — discard the pending draft\n• • *products* — list your catalogue
+• *search [keyword]* — find past messages`;      }
     }
 
     await sendWhatsAppMessage(replyTo, reply);
@@ -1298,7 +1329,7 @@ async function handleCommandInBackground(
 function quickCommandCheck(text: string): boolean {
   const t = text.trim().toLowerCase();
 
-    const exactCommands = [
+        const exactCommands = [
     "summary",
     "help",
     "pending",
@@ -1310,6 +1341,14 @@ function quickCommandCheck(text: string): boolean {
     "show drafts",
     "list drafts",
     "my drafts",
+    "products",
+    "catalog",
+    "catalogue",
+    "menu",
+    "my products",
+    "my menu",
+    "price list",
+    "items",
   ];
   if (exactCommands.includes(t)) return true;
 

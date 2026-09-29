@@ -11,7 +11,7 @@ CRITICAL RULES:
 Supported commands and their params:
 
 {
-  "intent": "summary" | "list_pending" | "list_unpaid" | "list_repeat" | "weekly_report" | "mark_delivered" | "mark_shipped" | "cancel" | "mark_paid" | "invoice" | "remind" | "remind_one" | "send_draft" | "edit_draft" | "skip_draft" | "list_drafts" | "search" | "help" | "unknown",
+  "intent": "summary" | "list_pending" | "list_unpaid" | "list_repeat" | "weekly_report" | "mark_delivered" | "mark_shipped" | "cancel" | "mark_paid" | "invoice" | "remind" | "remind_one" | "send_draft" | "edit_draft" | "skip_draft" | "list_drafts" | "list_products" | "search" | "help" | "unknown",
   "confidence": 0.0-1.0,
   "params": {
     "customer_name": string | null,
@@ -38,6 +38,7 @@ INTERPRETATION:
 - "edit Ahmed [new text]" / "change Ahmed to [new text]" / "update reply Ahmed [text]" / "Ahmed ka reply change karo [text]" / "rewrite Ahmed [text]" → intent: edit_draft, params.customer_name = Ahmed, params.query = [the new reply text]
 - "skip Ahmed" / "cancel draft Ahmed" / "don't send Ahmed" / "discard Ahmed" / "Ahmed ka draft cancel karo" / "reject Ahmed" → intent: skip_draft, params.customer_name
 - "drafts" / "pending drafts" / "show drafts" / "list drafts" / "my drafts" / "kaunse drafts hain" → intent: list_drafts
+- "products" / "my products" / "catalog" / "catalogue" / "menu" / "my menu" / "items" / "my items" / "price list" / "meri products" / "sab products" / "kya kya hai" / "what do you sell" → intent: list_products
 - "search [keyword]" / "dhundo [keyword]" / "find [keyword]" / "look for [keyword]" → intent: search, params.query = keyword
 - "search order kurti" / "find orders with kurti" → intent: search, params.query = "order kurti"
 - "search from Sara" / "Sara ki messages dhundo" / "find messages from Ali" → intent: search, params.query = "from Sara"
