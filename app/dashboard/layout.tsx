@@ -1,4 +1,5 @@
 // app/dashboard/layout.tsx
+import { redirect } from "next/navigation";
 import { getCtx } from "./_lib";
 import { Sidebar } from "./_components/Sidebar";
 
@@ -8,6 +9,12 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { email, user } = await getCtx();
+
+  // Redirect to onboarding if the seller hasn't set up their business yet.
+  // We check businessName AND businessType — both are required.
+  if (!user.businessName || !user.businessType) {
+    redirect("/onboarding");
+  }
 
   return (
     <div

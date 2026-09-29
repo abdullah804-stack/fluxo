@@ -7,6 +7,7 @@ import {
   itemList,
   orderTone,
   orderLabel,
+  getBusinessTypeMeta,
 } from "../_lib";
 import { PageHeader } from "../_components/PageHeader";
 import { StatusChip, Badge } from "../_components/StatusChip";
@@ -42,6 +43,9 @@ export default async function Orders({
   const { user, scope } = await getCtx();
   const base =
     (user as { baseCurrency?: string }).baseCurrency ?? "USD";
+  const businessMeta = getBusinessTypeMeta(
+    (user as { businessType?: string | null }).businessType
+  );
 
   const view = sp.view === "kanban" ? "kanban" : "list";
   const sort = sp.sort === "total" ? "total" : "createdAt";
@@ -258,7 +262,7 @@ export default async function Orders({
                 <table className="w-full text-sm">
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${BORDER}` }}>
-                      {["Customer", "Items"].map((h) => (
+                        {["Customer", businessMeta.itemPlural].map((h) => (
                         <th
                           key={h}
                           className="px-5 py-3 text-left font-medium"

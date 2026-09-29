@@ -40,3 +40,9 @@ export const intentTone: Record<string, "accent" | "danger" | "success" | "warni
 export const intentDot: Record<string, string> = {
   order: "bg-primary", complaint: "bg-rose", payment: "bg-emerald", question: "bg-amber",
 };
+export {
+  BUSINESS_TYPES,
+  getBusinessTypeMeta,
+  type BusinessType,
+  type BusinessTypeMeta,
+} from "@/lib/business-types";

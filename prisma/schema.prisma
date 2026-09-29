@@ -18,6 +18,8 @@ model User {
   updatedAt     DateTime  @updatedAt
   draftNotifications Boolean @default(false)
   highValueThreshold Float?
+  businessName String?
+  businessType String?
   
 
   accounts        Account[]
