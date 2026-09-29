@@ -325,7 +325,19 @@ async function extractInBackground(
         }
       }
 
-            const createdOrder = await prisma.order.create({
+              // Parse scheduled_at if the extractor returned one
+      let scheduledAt: Date | null = null;
+      if (
+        extracted.order.scheduled_at &&
+        typeof extracted.order.scheduled_at === "string"
+      ) {
+        const parsed = new Date(extracted.order.scheduled_at);
+        if (!Number.isNaN(parsed.getTime())) {
+          scheduledAt = parsed;
+        }
+      }
+
+      const createdOrder = await prisma.order.create({
         data: {
           whatsappAccountId: accountId,
           customerId: customer.id,
@@ -343,6 +355,7 @@ async function extractInBackground(
           baseAmount,
           exchangeRate,
           exchangeRateDate,
+          scheduledAt,
         },
       });
 

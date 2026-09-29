@@ -315,11 +315,54 @@ export default async function Orders({
                               {displayName(o)}
                             </Link>
                           </td>
-                          <td
+                                                    <td
                             className="px-5 py-3.5"
                             style={{ color: TEXT_SECONDARY }}
                           >
-                            {itemsSummary(o.items)}
+                            <div className="flex items-center gap-2">
+                              <span>{itemsSummary(o.items)}</span>
+                              {(o as { scheduledAt?: Date | null })
+                                .scheduledAt && (
+                                <span
+                                  className="inline-flex items-center gap-1 whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-medium"
+                                  style={{
+                                    background: "#FFF3E0",
+                                    color: "#B45309",
+                                  }}
+                                  title={`Scheduled for ${new Date(
+                                    (o as { scheduledAt?: Date | null })
+                                      .scheduledAt!
+                                  ).toLocaleString()}`}
+                                >
+                                  <svg
+                                    width="10"
+                                    height="10"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <rect
+                                      x="3"
+                                      y="5"
+                                      width="18"
+                                      height="16"
+                                      rx="2"
+                                    />
+                                    <path d="M8 3v4M16 3v4M3 10h18" />
+                                  </svg>
+                                  {new Date(
+                                    (o as { scheduledAt?: Date | null })
+                                      .scheduledAt!
+                                  ).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                  })}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-5 py-3.5 text-right">
                             <Money

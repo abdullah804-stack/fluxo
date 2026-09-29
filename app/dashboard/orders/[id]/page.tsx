@@ -187,7 +187,50 @@ export default async function OrderDetail({
                 {o.customer?.phone ?? "—"}
               </Link>
             )}
-            {row("Address", o.address ?? o.customer?.address ?? "—")}
+                        {row("Address", o.address ?? o.customer?.address ?? "—")}
+            {(o as { scheduledAt?: Date | null }).scheduledAt && (
+              <div
+                className="flex items-center justify-between gap-4 py-3 text-sm"
+                style={{ borderBottom: "1px solid #F3F5FB" }}
+              >
+                <dt style={{ color: "#556075" }}>Scheduled for</dt>
+                <dd
+                  className="text-right"
+                  style={{ color: "#0B1220" }}
+                >
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium"
+                    style={{
+                      background: "#FFF3E0",
+                      color: "#B45309",
+                    }}
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="5" width="18" height="16" rx="2" />
+                      <path d="M8 3v4M16 3v4M3 10h18" />
+                    </svg>
+                    {new Date(
+                      (o as { scheduledAt?: Date | null }).scheduledAt!
+                    ).toLocaleString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </dd>
+              </div>
+            )}
             {row(
               "Payment method",
               o.paymentMethod ?? "—"

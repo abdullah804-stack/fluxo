@@ -18,6 +18,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   draftNotifications Boolean @default(false)
   highValueThreshold Float?
+  
 
   accounts        Account[]
   sessions        Session[]
@@ -137,6 +138,7 @@ model Order {
   exchangeRateDate  DateTime?
   recipientName     String?
   lastRemindedAt    DateTime?
+  scheduledAt       DateTime?
 
   account  WhatsAppAccount @relation(fields: [whatsappAccountId], references: [id], onDelete: Cascade)
   customer Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)

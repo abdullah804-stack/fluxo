@@ -6,7 +6,7 @@ export interface ExtractedMessage {
   confidence: number;
   language: string;
   customer: { name: string | null; phone: string | null };
-    order: {
+  order: {
     items: { name: string; quantity: number | null; price: number | null }[];
     total: number | null;
     currency: string | null;
@@ -14,7 +14,13 @@ export interface ExtractedMessage {
     currency_reasoning: string | null;
     payment_method: string | null;
     address: string | null;
+    scheduled_at: string | null;
+    scheduled_reasoning: string | null;
   } | null;
+  question: string | null;
+  complaint: string | null;
+  status_reference: string | null;
+  notes: string | null;
 }
 
 const VALID_INTENTS = [
