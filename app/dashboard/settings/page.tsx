@@ -5,6 +5,7 @@ import { CurrencySettings } from "./CurrencySettings";
 import { BusinessInfo } from "./BusinessInfo";
 import { DisconnectButton } from "./DisconnectButton";
 import { DraftNotificationsToggle } from "./DraftNotificationsToggle";
+import { HighValueThresholdInput } from "./HighValueThresholdInput";
 
 const BORDER = "#E6EAF5";
 const LINE_SOFT = "#F3F5FB";
@@ -125,6 +126,31 @@ export default async function Settings() {
           </p>
           <DraftNotificationsToggle
             initialEnabled={user.draftNotifications ?? false}
+          />
+        </section>
+
+        
+        {/* High-value order alerts */}
+        <section
+          style={{ ...card, animationDelay: "135ms" }}
+          className="fade-up"
+        >
+          <h2
+            className="mb-1 text-base font-semibold tracking-tight"
+            style={{ color: TEXT_PRIMARY }}
+          >
+            High-value order alerts
+          </h2>
+          <p className="mb-4 text-sm" style={{ color: TEXT_SECONDARY }}>
+            When a new order exceeds your threshold, Fluxo pings you on
+            WhatsApp right away. Off by default.
+          </p>
+          <HighValueThresholdInput
+            initialThreshold={
+              (user as { highValueThreshold?: number | null })
+                .highValueThreshold ?? null
+            }
+            baseCurrency={baseCurrency}
           />
         </section>
         {/* Danger zone */}

@@ -17,6 +17,7 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   draftNotifications Boolean @default(false)
+  highValueThreshold Float?
 
   accounts        Account[]
   sessions        Session[]

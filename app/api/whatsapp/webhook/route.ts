@@ -17,8 +17,10 @@ import {
   computeWeeklyReport,
   formatWeeklyReport,
 } from "@/lib/reports/weekly";
+import { notifyHighValueOrder } from "@/lib/whatsapp/notify-high-value";
 
 import { notifyOwnerWithDraft } from "@/lib/whatsapp/notify-draft";
+
 import {
   findPendingDraftsByName,
   approveAndSendDraft,
@@ -323,7 +325,7 @@ async function extractInBackground(
         }
       }
 
-      await prisma.order.create({
+            const createdOrder = await prisma.order.create({
         data: {
           whatsappAccountId: accountId,
           customerId: customer.id,
@@ -344,7 +346,15 @@ async function extractInBackground(
         },
       });
 
-            console.log("[webhook] order created for customer:", customer.id);
+      console.log("[webhook] order created for customer:", customer.id);
+
+      // High-value alert — fires only if the owner set a threshold
+      // and this order's baseAmount crosses it.
+      notifyHighValueOrder({
+        orderId: createdOrder.id,
+        accountId,
+        userId,
+      });
     }
 
     // Owner notification: if this message is a question, ping the owner
