@@ -79,22 +79,22 @@ export default async function Overview() {
             <TopBar />
 
       {/* Connect WhatsApp banner — only shows if no account connected */}
-      {!account && (
+            {!account && (
         <div
-          className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl p-5"
+          className="mb-6 flex flex-col gap-4 rounded-2xl p-5 md:flex-row md:items-center md:justify-between"
           style={{
             background: "linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)",
             border: "1px solid #C7D2FE",
           }}
         >
-          <div>
+          <div className="min-w-0">
             <h2
               className="text-base font-semibold tracking-tight"
               style={{ color: "#0B1220" }}
             >
               Connect your WhatsApp Business
             </h2>
-                        <p
+            <p
               className="mt-1 text-sm"
               style={{ color: "#4338CA" }}
             >
@@ -102,19 +102,19 @@ export default async function Overview() {
               tracking orders. Takes 5 minutes.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
             <a
               href="/setup-guide"
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-lg border bg-white px-4 py-2 text-sm font-medium transition-colors"
+              className="rounded-lg border bg-white px-4 py-2 text-center text-sm font-medium transition-colors"
               style={{ borderColor: "#C7D2FE", color: "#4338CA" }}
             >
               Setup guide
             </a>
             <Link
               href="/dashboard/settings"
-              className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
+              className="rounded-lg px-4 py-2 text-center text-sm font-semibold text-white transition-colors"
               style={{ background: "#3B6BFF" }}
             >
               Connect now →

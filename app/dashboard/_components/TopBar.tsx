@@ -1,8 +1,12 @@
 "use client";
-
 // app/dashboard/_components/TopBar.tsx
 export function TopBar() {
-  const today = new Date().toLocaleDateString("en-US", {
+  const today = new Date();
+  const shortDate = today.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+  const fullDate = today.toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -10,10 +14,10 @@ export function TopBar() {
   });
 
   return (
-    <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-      {/* Search bar */}
+    <div className="mb-6 flex items-center justify-between gap-3 md:mb-8">
+      {/* Search bar — hidden on mobile */}
       <div
-        className="flex h-11 w-full max-w-[520px] items-center gap-2.5 rounded-full border bg-white px-4 shadow-sm transition-shadow duration-200 focus-within:shadow-md"
+        className="hidden h-11 w-full max-w-[520px] items-center gap-2.5 rounded-full border bg-white px-4 shadow-sm transition-shadow duration-200 focus-within:shadow-md md:flex"
         style={{ borderColor: "#E6EAF5" }}
       >
         <svg
@@ -45,8 +49,8 @@ export function TopBar() {
         </span>
       </div>
 
-      {/* Right side controls */}
-      <div className="flex items-center gap-3">
+      {/* Right side controls — always visible */}
+      <div className="ml-auto flex items-center gap-2 md:gap-3">
         {/* Notification bell */}
         <button
           aria-label="Notifications"
@@ -78,9 +82,9 @@ export function TopBar() {
           />
         </button>
 
-        {/* Date pill */}
+        {/* Date pill — compact on mobile, full on desktop */}
         <button
-          className="flex h-10 items-center gap-2 rounded-full border bg-white px-4 text-sm font-medium shadow-sm transition-colors duration-200"
+          className="flex h-10 items-center gap-2 rounded-full border bg-white px-3 text-sm font-medium shadow-sm transition-colors duration-200 md:px-4"
           style={{ borderColor: "#E6EAF5", color: "#0B1220" }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "#F0F4FF";
@@ -98,12 +102,14 @@ export function TopBar() {
             strokeWidth="1.75"
             strokeLinecap="round"
             strokeLinejoin="round"
+            className="shrink-0"
             style={{ color: "#556075" }}
           >
             <rect x="3" y="5" width="18" height="16" rx="2" />
             <path d="M8 3v4M16 3v4M3 10h18" />
           </svg>
-          {today}
+          <span className="hidden md:inline">{fullDate}</span>
+          <span className="md:hidden">{shortDate}</span>
           <svg
             width="14"
             height="14"
@@ -113,6 +119,7 @@ export function TopBar() {
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            className="hidden md:inline-block"
             style={{ color: "#8B95AB" }}
           >
             <path d="m6 9 6 6 6-6" />

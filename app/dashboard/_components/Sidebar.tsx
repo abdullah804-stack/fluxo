@@ -47,7 +47,7 @@ const I = {
       <path d="m7 14 3-3 3 3 4-6" />
     </svg>
   ),
-    tag: (
+  tag: (
     <svg {...P}>
       <path d="M20.6 13.4 12 4.8H4.8V12l8.6 8.6a2 2 0 0 0 2.8 0l4.4-4.4a2 2 0 0 0 0-2.8z" />
       <circle cx="7.5" cy="7.5" r="1.2" />
@@ -73,8 +73,21 @@ const I = {
       <path d="m9 18 6-6-6-6" />
     </svg>
   ),
+  close: (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  ),
 };
-
 
 const nav = [
   { href: "/dashboard", label: "Overview", icon: I.grid, exact: true },
@@ -89,7 +102,17 @@ const ACCENT = "#3B6BFF";
 const ACCENT_SOFT = "#E5ECFF";
 const HOVER_BG = "#F0F4FF";
 
-export function Sidebar({ email, name }: { email: string; name: string }) {
+export function Sidebar({
+  email,
+  name,
+  open,
+  onClose,
+}: {
+  email: string;
+  name: string;
+  open: boolean;
+  onClose: () => void;
+}) {
   const path = usePathname();
 
   const item = (n: {
@@ -104,6 +127,7 @@ export function Sidebar({ email, name }: { email: string; name: string }) {
       <Link
         key={n.href}
         href={n.href}
+        onClick={onClose}
         aria-current={on ? "page" : undefined}
         className="group relative flex items-center gap-3 overflow-hidden rounded-xl py-2.5 pl-4 pr-3 text-sm font-medium transition-colors duration-200"
         style={{
@@ -136,38 +160,53 @@ export function Sidebar({ email, name }: { email: string; name: string }) {
 
   return (
     <aside
-      className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r bg-white"
+      className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-white transition-transform duration-300 ease-out md:z-20 md:translate-x-0 ${
+        open ? "translate-x-0" : "-translate-x-full"
+      }`}
       style={{ borderColor: "#E6EAF5" }}
+      aria-hidden={!open}
     >
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-6">
-        <span
-          className="flex h-10 w-10 items-center justify-center rounded-xl text-base font-bold text-white"
-          style={{
-            background: "linear-gradient(135deg, #3B6BFF 0%, #6B8AFF 100%)",
-            boxShadow: "0 4px 14px -4px rgba(59, 107, 255, 0.4)",
-          }}
-        >
-          F
-        </span>
-        <div className="leading-tight">
-          <div
-            className="text-lg font-bold tracking-tight"
-            style={{ color: "#0B1220" }}
+      {/* Logo + mobile close */}
+      <div className="flex items-center justify-between px-5 py-6">
+        <div className="flex items-center gap-3">
+          <span
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-base font-bold text-white"
+            style={{
+              background:
+                "linear-gradient(135deg, #3B6BFF 0%, #6B8AFF 100%)",
+              boxShadow: "0 4px 14px -4px rgba(59, 107, 255, 0.4)",
+            }}
           >
-            Fluxo
-          </div>
-          <div
-            className="text-[10px] font-medium tracking-[0.15em]"
-            style={{ color: "#8B95AB" }}
-          >
-            BUSINESS OS
+            F
+          </span>
+          <div className="leading-tight">
+            <div
+              className="text-lg font-bold tracking-tight"
+              style={{ color: "#0B1220" }}
+            >
+              Fluxo
+            </div>
+            <div
+              className="text-[10px] font-medium tracking-[0.15em]"
+              style={{ color: "#8B95AB" }}
+            >
+              BUSINESS OS
+            </div>
           </div>
         </div>
+
+        <button
+          onClick={onClose}
+          aria-label="Close menu"
+          className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors md:hidden"
+          style={{ color: "#556075" }}
+        >
+          {I.close}
+        </button>
       </div>
 
       {/* Nav */}
-      <nav className="mt-6 flex flex-1 flex-col gap-1 px-2">
+      <nav className="mt-2 flex flex-1 flex-col gap-1 overflow-y-auto px-2 pb-4">
         {nav.map(item)}
         <hr
           className="my-4 ml-2 mr-4"
@@ -181,7 +220,10 @@ export function Sidebar({ email, name }: { email: string; name: string }) {
       </nav>
 
       {/* User block */}
-      <div className="p-3" style={{ borderTop: "1px solid #EDF0F8" }}>
+      <div
+        className="p-3"
+        style={{ borderTop: "1px solid #EDF0F8" }}
+      >
         <div
           className="flex items-center gap-3 rounded-lg px-2 py-2 transition-colors duration-200"
           onMouseEnter={(e) => {

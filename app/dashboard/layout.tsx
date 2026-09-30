@@ -1,7 +1,7 @@
 // app/dashboard/layout.tsx
 import { redirect } from "next/navigation";
 import { getCtx } from "./_lib";
-import { Sidebar } from "./_components/Sidebar";
+import { DashboardShell } from "./_components/DashboardShell";
 
 export default async function DashboardLayout({
   children,
@@ -10,8 +10,6 @@ export default async function DashboardLayout({
 }) {
   const { email, user } = await getCtx();
 
-  // Redirect to onboarding if the seller hasn't set up their business yet.
-  // We check businessName AND businessType — both are required.
   if (!user.businessName || !user.businessType) {
     redirect("/onboarding");
   }
@@ -53,11 +51,12 @@ export default async function DashboardLayout({
         />
       </div>
 
-      <Sidebar email={email} name={user.name ?? email.split("@")[0]} />
-
-      <main className="relative z-[5] min-h-screen pl-64">
-        <div className="mx-auto max-w-[1280px] px-8 py-8">{children}</div>
-      </main>
+      <DashboardShell
+        email={email}
+        name={user.name ?? email.split("@")[0]}
+      >
+        {children}
+      </DashboardShell>
     </div>
   );
 }
