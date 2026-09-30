@@ -160,3 +160,142 @@ body { background: var(--color-page); color: var(--color-ink); font-family: var(
   .order-card:hover .arrow-btn svg, .card.lift:hover .kpi-glow { transform: none; }
   * { transition-duration: 0ms !important; }
 }
+/* Landing page extraction animation */
+.phase {
+  opacity: 0;
+  transform: translateY(12px);
+  animation-duration: 9s;
+  animation-iteration-count: infinite;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.phase-1 {
+  animation-name: phase-1;
+}
+.phase-2 {
+  animation-name: phase-2;
+}
+.phase-3 {
+  animation-name: phase-3;
+}
+
+@keyframes phase-1 {
+  0%, 30% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  33.33%, 100% {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes phase-2 {
+  0%, 30% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  33.33%, 55% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  58.33%, 100% {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes phase-3 {
+  0%, 55% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  58.33%, 94% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes anim-progress {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.anim-progress-bar {
+  animation: anim-progress 2.3s ease-in-out infinite;
+}
+
+.anim-spin-slow {
+  animation: anim-spin 3s linear infinite;
+}
+
+@keyframes anim-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.anim-pulse-dot {
+  animation: anim-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes anim-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.3);
+  }
+}
+
+.anim-dots::after {
+  content: "";
+  animation: dots 1.4s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0% {
+    content: "";
+  }
+  25% {
+    content: ".";
+  }
+  50% {
+    content: "..";
+  }
+  75%, 100% {
+    content: "...";
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phase,
+  .anim-progress-bar,
+  .anim-spin-slow,
+  .anim-pulse-dot,
+  .anim-dots::after {
+    animation: none !important;
+  }
+  .phase-1 {
+    opacity: 1;
+    transform: none;
+  }
+  .phase-2,
+  .phase-3 {
+    display: none;
+  }
+}

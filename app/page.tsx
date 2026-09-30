@@ -1,8 +1,8 @@
 // app/page.tsx
 import Link from "next/link";
+import { ExtractionDemo } from "./_components/ExtractionDemo";
 
 const ACCENT = "#3B6BFF";
-const ACCENT_HOVER = "#2D56D9";
 
 export default function Home() {
   return (
@@ -81,8 +81,8 @@ export default function Home() {
           />
         </div>
 
-        <div className="relative mx-auto max-w-6xl px-6 py-24">
-          <div className="grid items-center gap-16 lg:grid-cols-2">
+        <div className="relative mx-auto max-w-6xl px-6 py-20 md:py-24">
+          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
             {/* Left: copy */}
             <div>
               <div
@@ -97,19 +97,22 @@ export default function Home() {
                 Now in early access
               </div>
 
-              <h1 className="text-5xl font-bold leading-[1.05] tracking-tight text-white">
-                Turn your WhatsApp
+              <h1 className="text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl">
+                Your WhatsApp already runs your business.
                 <br />
-                into a business.
+                <span style={{ color: "#6B8AFF" }}>
+                  Fluxo makes it official.
+                </span>
               </h1>
 
               <p
-                className="mt-6 max-w-lg text-lg leading-relaxed"
+                className="mt-6 max-w-lg text-base leading-relaxed sm:text-lg"
                 style={{ color: "#B8C4D9" }}
               >
-                Every customer message becomes a structured order. Every
-                order becomes a tracked job. Every question answered.
-                From the same WhatsApp you already use.
+                Every message your customers send — orders, questions,
+                payments, complaints — is read, understood, and turned
+                into structured data. No spreadsheets. No lost
+                information. No new app to learn.
               </p>
 
               <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -130,126 +133,19 @@ export default function Home() {
                 </a>
               </div>
 
-              <p
-                className="mt-6 text-xs"
-                style={{ color: "#5A6B85" }}
-              >
-                No credit card. No setup. Just your WhatsApp.
+              <p className="mt-6 text-xs" style={{ color: "#5A6B85" }}>
+                Works with any WhatsApp Business number. Free to try.
               </p>
             </div>
 
-            {/* Right: live activity mockup */}
-            <div className="relative">
-              <div
-                className="rounded-3xl p-6"
-                style={{
-                  background: "rgba(255, 255, 255, 0.04)",
-                  border: "1px solid rgba(255, 255, 255, 0.08)",
-                  backdropFilter: "blur(24px)",
-                  boxShadow:
-                    "0 24px 60px -20px rgba(59, 107, 255, 0.3)",
-                }}
-              >
-                {/* Header */}
-                <div className="mb-4 flex items-center justify-between">
-                  <span
-                    className="text-[10px] font-semibold uppercase tracking-[0.15em]"
-                    style={{ color: "#8B95AB" }}
-                  >
-                    Live activity
-                  </span>
-                  <span
-                    className="inline-flex items-center gap-1.5 text-xs"
-                    style={{ color: "#10B981" }}
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                    Online
-                  </span>
-                </div>
-
-                {/* Feed */}
-                <div className="flex flex-col gap-3">
-                  {[
-                    {
-                      msg: "Sara k liye 2 suits, 3,500, COD",
-                      tag: "order",
-                      color: "#6B8AFF",
-                      bg: "rgba(59, 107, 255, 0.15)",
-                    },
-                    {
-                      msg: "Where is my order?",
-                      tag: "question",
-                      color: "#F5B83D",
-                      bg: "rgba(245, 158, 11, 0.15)",
-                    },
-                    {
-                      msg: "Payment kar diya",
-                      tag: "payment",
-                      color: "#10B981",
-                      bg: "rgba(16, 185, 129, 0.15)",
-                    },
-                    {
-                      msg: "Aapka maal kharab tha",
-                      tag: "complaint",
-                      color: "#F43F5E",
-                      bg: "rgba(244, 63, 94, 0.15)",
-                    },
-                  ].map((item, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between gap-3 rounded-xl p-3"
-                      style={{
-                        background: "rgba(255, 255, 255, 0.03)",
-                        border:
-                          "1px solid rgba(255, 255, 255, 0.05)",
-                      }}
-                    >
-                      <span
-                        className="truncate text-sm"
-                        style={{ color: "#E5EAF3" }}
-                      >
-                        {item.msg}
-                      </span>
-                      <span
-                        className="shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-medium"
-                        style={{
-                          background: item.bg,
-                          color: item.color,
-                        }}
-                      >
-                        {item.tag}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Footer stat */}
-                <div
-                  className="mt-4 flex items-center justify-between border-t pt-4"
-                  style={{ borderColor: "rgba(255,255,255,0.06)" }}
-                >
-                  <span
-                    className="text-xs"
-                    style={{ color: "#8B95AB" }}
-                  >
-                    Structured in real time
-                  </span>
-                  <span
-                    className="text-xs font-semibold"
-                    style={{ color: "#6B8AFF" }}
-                  >
-                    Auto
-                  </span>
-                </div>
-              </div>
-            </div>
+            {/* Right: extraction animation */}
+            <ExtractionDemo />
           </div>
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
+      {/* THE PROBLEM */}
       <section
-        id="how-it-works"
         className="relative"
         style={{
           borderTop: "1px solid rgba(255,255,255,0.06)",
@@ -257,51 +153,72 @@ export default function Home() {
           background: "rgba(5, 11, 20, 0.5)",
         }}
       >
-        <div className="mx-auto max-w-6xl px-6 py-24">
-          <h2 className="text-3xl font-bold tracking-tight">
-            How it works
-          </h2>
-          <p
-            className="mt-3 max-w-2xl text-base"
-            style={{ color: "#B8C4D9" }}
-          >
-            No setup. No configuration. No fields to fill. Just your
-            WhatsApp.
-          </p>
+        <div className="mx-auto max-w-6xl px-6 py-20 md:py-24">
+          <div className="max-w-3xl">
+            <p
+              className="text-[11px] font-semibold uppercase tracking-[0.15em]"
+              style={{ color: "#6B8AFF" }}
+            >
+              The problem
+            </p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              Millions of businesses run on WhatsApp — and it's chaos.
+            </h2>
+            <p
+              className="mt-5 text-base leading-relaxed"
+              style={{ color: "#B8C4D9" }}
+            >
+              Orders tracked in memory. Prices remembered instead of
+              stored. Payments chased over chat. Customers asking
+              &quot;where is my order&quot; because nobody wrote it down.
+            </p>
+            <p
+              className="mt-4 text-base leading-relaxed"
+              style={{ color: "#B8C4D9" }}
+            >
+              WhatsApp was never built to run a business. But it's where
+              your customers are. Fluxo closes that gap.
+            </p>
+          </div>
 
-          <div className="mt-14 grid gap-10 md:grid-cols-3">
+          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               {
-                n: "01",
-                title: "You keep using WhatsApp",
-                body: "Same app. Same number. Same customers. Nothing changes on your side.",
+                stat: "70%",
+                body: "of WhatsApp business messages go unanswered overnight",
               },
               {
-                n: "02",
-                title: "Fluxo reads every message",
-                body: "Every incoming message is understood: is it an order, a question, a payment, or a complaint?",
+                stat: "5+",
+                body: "separate tools the average seller uses to track one order",
               },
               {
-                n: "03",
-                title: "Your business becomes a system",
-                body: "Orders tracked. Customers organized. Reports in one word. Everything runs from your dashboard.",
+                stat: "1 in 3",
+                body: "orders get forgotten or misremembered without a system",
               },
-            ].map((step) => (
-              <div key={step.n}>
+              {
+                stat: "0",
+                body: "structured reports at the end of the day",
+              },
+            ].map((item) => (
+              <div
+                key={item.stat}
+                className="rounded-2xl p-5"
+                style={{
+                  background: "rgba(255, 255, 255, 0.03)",
+                  border: "1px solid rgba(255, 255, 255, 0.06)",
+                }}
+              >
                 <div
-                  className="mb-3 font-mono text-xs"
-                  style={{ color: "#5A6B85" }}
+                  className="text-3xl font-bold tracking-tight"
+                  style={{ color: "#FFFFFF" }}
                 >
-                  {step.n}
+                  {item.stat}
                 </div>
-                <h3 className="text-lg font-semibold text-white">
-                  {step.title}
-                </h3>
                 <p
                   className="mt-2 text-sm leading-relaxed"
                   style={{ color: "#B8C4D9" }}
                 >
-                  {step.body}
+                  {item.body}
                 </p>
               </div>
             ))}
@@ -309,50 +226,63 @@ export default function Home() {
         </div>
       </section>
 
-      {/* WHO IT'S FOR */}
-      <section className="mx-auto max-w-6xl px-6 py-24">
-        <h2 className="text-3xl font-bold tracking-tight">
-          Built for businesses that live on WhatsApp
-        </h2>
-        <p
-          className="mt-3 max-w-2xl text-base"
-          style={{ color: "#B8C4D9" }}
-        >
-          From Karachi to California. Any business that takes orders,
-          answers questions, or coordinates work through WhatsApp DMs.
-        </p>
+      {/* HOW IT WORKS */}
+      <section id="how-it-works" className="mx-auto max-w-6xl px-6 py-20 md:py-24">
+        <div className="max-w-3xl">
+          <p
+            className="text-[11px] font-semibold uppercase tracking-[0.15em]"
+            style={{ color: "#6B8AFF" }}
+          >
+            How it works
+          </p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Nothing changes on your side. Everything changes behind the scenes.
+          </h2>
+        </div>
 
-        <div className="mt-14 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="mt-14 grid gap-8 md:grid-cols-3">
           {[
-            "Clothing",
-            "Food",
-            "Services",
-            "Retail",
-            "Salons",
-            "Trades",
-            "Repairs",
-            "Freelance",
-          ].map((label) => (
-            <div
-              key={label}
-              className="rounded-2xl p-5 text-center"
-              style={{
-                background: "rgba(255, 255, 255, 0.03)",
-                border: "1px solid rgba(255, 255, 255, 0.06)",
-              }}
-            >
+            {
+              n: "01",
+              title: "You keep using WhatsApp",
+              body: "Same app. Same number. Same customers. You do nothing differently.",
+            },
+            {
+              n: "02",
+              title: "Fluxo reads every message",
+              body: "Each message is understood: is it an order, a question, a payment, a complaint?",
+            },
+            {
+              n: "03",
+              title: "Your business becomes a system",
+              body: "Orders tracked. Customers organized. Reports on demand. All from your dashboard or a WhatsApp command.",
+            },
+          ].map((step) => (
+            <div key={step.n}>
+              <div
+                className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl font-mono text-sm font-bold"
+                style={{
+                  background: "rgba(59, 107, 255, 0.12)",
+                  color: "#6B8AFF",
+                }}
+              >
+                {step.n}
+              </div>
+              <h3 className="text-lg font-semibold text-white">
+                {step.title}
+              </h3>
               <p
-  className="text-sm font-medium"
-  style={{ color: "#E5EAF3" }}
->
-  {label}
-</p>
+                className="mt-2 text-sm leading-relaxed"
+                style={{ color: "#B8C4D9" }}
+              >
+                {step.body}
+              </p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* FEATURES */}
+      {/* WHAT YOU GET */}
       <section
         style={{
           borderTop: "1px solid rgba(255,255,255,0.06)",
@@ -360,54 +290,218 @@ export default function Home() {
           background: "rgba(5, 11, 20, 0.5)",
         }}
       >
-        <div className="mx-auto max-w-6xl px-6 py-24">
-          <h2 className="text-3xl font-bold tracking-tight">
-            What you get
-          </h2>
-          <p
-            className="mt-3 max-w-2xl text-base"
-            style={{ color: "#B8C4D9" }}
-          >
-            Everything a spreadsheet can't do — without leaving
-            WhatsApp.
-          </p>
+        <div className="mx-auto max-w-6xl px-6 py-20 md:py-24">
+          <div className="max-w-3xl">
+            <p
+              className="text-[11px] font-semibold uppercase tracking-[0.15em]"
+              style={{ color: "#6B8AFF" }}
+            >
+              What you get
+            </p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              A complete operating system for your WhatsApp business.
+            </h2>
+          </div>
 
-          <div className="mt-14 grid gap-x-12 gap-y-10 md:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                title: "Auto-extracted orders",
-                body: "Every message becomes a structured order with customer, items, price, and payment method.",
-              },
-              {
-                title: "Real dashboard",
-                body: "See your whole business in one screen. Sales, pending, unpaid, top customers.",
-              },
-              {
-                title: "Multi-currency",
-                body: "Orders in PKR, USD, EUR, AED, or any of 30+ currencies convert to your base automatically.",
-              },
-              {
-                title: "Natural language commands",
-                body: "Type 'summary', 'pending', or 'who owes me' in WhatsApp. Get answers in seconds.",
-              },
-              {
-                title: "Customer history",
-                body: "Every customer with their full order history, total spent, and last contact.",
-              },
-              {
-                title: "Voice notes and images",
-                body: "Voice messages transcribed. Payment screenshots read. All become structured data.",
-              },
-            ].map((f) => (
-              <div key={f.title}>
-                <h3 className="text-base font-semibold text-white">
-                  {f.title}
-                </h3>
-                <p
-                  className="mt-2 text-sm leading-relaxed"
-                  style={{ color: "#B8C4D9" }}
+          <div className="mt-14 grid gap-8 md:grid-cols-3">
+            <FeatureGroup
+              title="Extract"
+              items={[
+                {
+                  title: "Structured orders",
+                  body: "Every order arrives with customer, items, quantity, price, address, and payment method.",
+                },
+                {
+                  title: "Multi-modal input",
+                  body: "Text, voice notes, and payment screenshots all become structured data.",
+                },
+                {
+                  title: "Multi-language",
+                  body: "English, Urdu, Hindi, and mixed — understood the same way.",
+                },
+              ]}
+            />
+            <FeatureGroup
+              title="Operate"
+              items={[
+                {
+                  title: "Natural language commands",
+                  body: "Type 'summary', 'pending', or 'who owes me' in WhatsApp. Get answers in seconds.",
+                },
+                {
+                  title: "Invoice PDFs",
+                  body: "Send an invoice to any customer with one command — no design work.",
+                },
+                {
+                  title: "Payment reminders",
+                  body: "Chase unpaid customers with one word. Fluxo handles the rest.",
+                },
+              ]}
+            />
+            <FeatureGroup
+              title="Understand"
+              items={[
+                {
+                  title: "Real dashboard",
+                  body: "Every order, customer, and message in one place. Kanban, list, and detail views.",
+                },
+                {
+                  title: "Weekly reports",
+                  body: "Revenue, top products, repeat customers — sent to your phone every Monday morning.",
+                },
+                {
+                  title: "Catalogue & pricing",
+                  body: "Store your products and prices once. Fluxo quotes them to customers automatically.",
+                },
+              ]}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* COMMANDS SHOWCASE */}
+      <section className="mx-auto max-w-6xl px-6 py-20 md:py-24">
+        <div className="grid items-start gap-12 lg:grid-cols-2 lg:gap-16">
+          <div>
+            <p
+              className="text-[11px] font-semibold uppercase tracking-[0.15em]"
+              style={{ color: "#6B8AFF" }}
+            >
+              Run it with commands
+            </p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              Talk to your business the same way you talk to a friend.
+            </h2>
+            <p
+              className="mt-5 text-base leading-relaxed"
+              style={{ color: "#B8C4D9" }}
+            >
+              Forget dashboards you have to remember. Just type what you
+              want in WhatsApp — Fluxo answers in seconds.
+            </p>
+            <p
+              className="mt-4 text-base leading-relaxed"
+              style={{ color: "#B8C4D9" }}
+            >
+              Ask for a summary. Mark deliveries. Send invoices. Chase
+              payments. All with a single line.
+            </p>
+
+            <Link
+              href="/signup"
+              className="mt-8 inline-flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold text-white transition-colors"
+              style={{ background: ACCENT }}
+            >
+              Try it free
+              <span>→</span>
+            </Link>
+          </div>
+
+          <div
+            className="rounded-2xl p-6"
+            style={{
+              background: "rgba(255, 255, 255, 0.03)",
+              border: "1px solid rgba(255, 255, 255, 0.06)",
+            }}
+          >
+            <div
+              className="mb-4 text-[10px] font-semibold uppercase tracking-[0.15em]"
+              style={{ color: "#8B95AB" }}
+            >
+              Fluxo commands
+            </div>
+            <div className="flex flex-col gap-2.5">
+              {[
+                { cmd: "summary", desc: "Today's business at a glance" },
+                { cmd: "pending", desc: "Orders still waiting to ship" },
+                { cmd: "who owes me", desc: "Every unpaid customer" },
+                { cmd: "invoice Sara", desc: "Send a PDF invoice instantly" },
+                { cmd: "remind all", desc: "Chase every unpaid order" },
+                { cmd: "delivered Ali", desc: "Mark an order as delivered" },
+                { cmd: "weekly report", desc: "Full week — sent to your phone" },
+                { cmd: "search kurti", desc: "Find any past conversation" },
+              ].map((row) => (
+                <div
+                  key={row.cmd}
+                  className="flex items-center justify-between gap-4"
                 >
-                  {f.body}
+                  <code
+                    className="rounded-md px-2 py-1 font-mono text-xs"
+                    style={{
+                      background: "rgba(59, 107, 255, 0.12)",
+                      color: "#6B8AFF",
+                    }}
+                  >
+                    {row.cmd}
+                  </code>
+                  <span
+                    className="text-right text-xs"
+                    style={{ color: "#B8C4D9" }}
+                  >
+                    {row.desc}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* WHO IT'S FOR */}
+      <section
+        style={{
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          background: "rgba(5, 11, 20, 0.5)",
+        }}
+      >
+        <div className="mx-auto max-w-6xl px-6 py-20 md:py-24">
+          <div className="max-w-3xl">
+            <p
+              className="text-[11px] font-semibold uppercase tracking-[0.15em]"
+              style={{ color: "#6B8AFF" }}
+            >
+              Who it's for
+            </p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              Any business that takes orders on WhatsApp.
+            </h2>
+            <p
+              className="mt-5 text-base leading-relaxed"
+              style={{ color: "#B8C4D9" }}
+            >
+              From a single shopkeeper in Karachi to a small chain in
+              California. If your customers message you, Fluxo is built
+              for you.
+            </p>
+          </div>
+
+          <div className="mt-14 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {[
+              "Clothing",
+              "Food & bakery",
+              "Cosmetics",
+              "Home decor",
+              "Electronics",
+              "Groceries",
+              "Books",
+              "Handicraft",
+              "Salons",
+              "Other",
+            ].map((label) => (
+              <div
+                key={label}
+                className="rounded-xl p-4 text-center"
+                style={{
+                  background: "rgba(255, 255, 255, 0.03)",
+                  border: "1px solid rgba(255, 255, 255, 0.06)",
+                }}
+              >
+                <p
+                  className="text-sm font-medium"
+                  style={{ color: "#E5EAF3" }}
+                >
+                  {label}
                 </p>
               </div>
             ))}
@@ -415,53 +509,103 @@ export default function Home() {
         </div>
       </section>
 
-      {/* UNDER THE HOOD */}
-      <section className="mx-auto max-w-6xl px-6 py-24">
-        <div className="grid items-start gap-16 lg:grid-cols-2">
+      {/* BUILT WITH */}
+      <section className="mx-auto max-w-6xl px-6 py-20 md:py-24">
+        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">
-              Under the hood
+            <p
+              className="text-[11px] font-semibold uppercase tracking-[0.15em]"
+              style={{ color: "#6B8AFF" }}
+            >
+              Built with
+            </p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              A real-time AI pipeline, not a wrapper.
             </h2>
             <p
-              className="mt-4 text-base leading-relaxed"
-              style={{ color: "#B8C4D9" }}
-            >
-              Fluxo is not a chatbot. It's a real-time AI pipeline that
-              runs on every message you receive.
-            </p>
-            <p
-              className="mt-4 text-base leading-relaxed"
+              className="mt-5 text-base leading-relaxed"
               style={{ color: "#B8C4D9" }}
             >
               AI interprets. Deterministic code executes. The AI never
               writes SQL, never generates executable code, and never
-              touches your data directly. Its output is validated before
-              anything runs.
+              touches your data directly. Its output is validated,
+              scored, and linked back to the source before anything runs.
             </p>
+            <p
+              className="mt-4 text-base leading-relaxed"
+              style={{ color: "#B8C4D9" }}
+            >
+              The pipeline handles text, voice notes, and images in the
+              same loop — with multi-currency conversion and per-field
+              confidence scoring.
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-2">
+              {[
+                "Next.js",
+                "TypeScript",
+                "PostgreSQL",
+                "Prisma",
+                "OpenRouter",
+                "Groq Whisper",
+                "Groq Vision",
+                "Meta Cloud API",
+              ].map((tech) => (
+                <span
+                  key={tech}
+                  className="rounded-full px-3 py-1 text-xs font-medium"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.05)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    color: "#B8C4D9",
+                  }}
+                >
+                  {tech}
+                </span>
+              ))}
+            </div>
           </div>
 
           <div
-            className="rounded-2xl p-6 font-mono text-xs leading-relaxed"
+            className="overflow-hidden rounded-2xl"
             style={{
               background: "rgba(255, 255, 255, 0.03)",
               border: "1px solid rgba(255, 255, 255, 0.06)",
-              color: "#B8C4D9",
+              padding: 24,
             }}
           >
-            <pre>{`WhatsApp message
-      ↓
-Intent + entity extraction (AI)
-      ↓
-Confidence scoring
-      ↓
-Validation (schema + source)
-      ↓
-PostgreSQL persist
-      ↓
-Dashboard update
+            <div
+              className="mb-4 text-[10px] font-semibold uppercase tracking-[0.15em]"
+              style={{ color: "#8B95AB" }}
+            >
+              The pipeline
+            </div>
 
-Same thesis as SheetForge:
-AI interprets, code executes.`}</pre>
+            <div className="flex flex-col gap-3">
+              <PipelineStep
+                n="1"
+                title="WhatsApp message arrives"
+                detail="Text, voice, or image — via Meta Cloud API"
+              />
+              <Arrow />
+              <PipelineStep
+                n="2"
+                title="AI reads and extracts"
+                detail="Intent · Entities · Currency · Scheduling"
+              />
+              <Arrow />
+              <PipelineStep
+                n="3"
+                title="Confidence scored & validated"
+                detail="Every field backed by the source message"
+              />
+              <Arrow />
+              <PipelineStep
+                n="4"
+                title="Persisted to PostgreSQL"
+                detail="Ready for your dashboard and commands"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -483,18 +627,18 @@ AI interprets, code executes.`}</pre>
           />
         </div>
 
-        <div className="relative mx-auto max-w-6xl px-6 py-24 text-center">
-          <h2 className="text-4xl font-bold tracking-tight text-white">
+        <div className="relative mx-auto max-w-6xl px-6 py-20 text-center md:py-24">
+          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Turn your first order into a system.
           </h2>
           <p
             className="mx-auto mt-4 max-w-lg text-base"
             style={{ color: "#B8C4D9" }}
           >
-            Free to try. No credit card. Connect your WhatsApp in under
-            two minutes.
+            Free to try. No credit card. Connect your WhatsApp number and
+            Fluxo starts working within minutes.
           </p>
-          <div className="mt-8 flex justify-center">
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
               href="/signup"
               className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold text-white transition-colors"
@@ -503,6 +647,16 @@ AI interprets, code executes.`}</pre>
               Get started
               <span>→</span>
             </Link>
+            <a
+              href="/setup-guide"
+              className="inline-flex items-center gap-2 rounded-lg border px-6 py-3 text-sm font-medium transition-colors"
+              style={{
+                borderColor: "rgba(255,255,255,0.15)",
+                color: "#B8C4D9",
+              }}
+            >
+              See the setup guide
+            </a>
           </div>
         </div>
       </section>
@@ -539,6 +693,13 @@ AI interprets, code executes.`}</pre>
               GitHub
             </a>
             <Link
+              href="/setup-guide"
+              className="transition-colors"
+              style={{ color: "#8B95AB" }}
+            >
+              Setup guide
+            </Link>
+            <Link
               href="/login"
               className="transition-colors"
               style={{ color: "#8B95AB" }}
@@ -556,5 +717,82 @@ AI interprets, code executes.`}</pre>
         </div>
       </footer>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Helpers                                                             */
+/* ------------------------------------------------------------------ */
+
+function FeatureGroup({
+  title,
+  items,
+}: {
+  title: string;
+  items: { title: string; body: string }[];
+}) {
+  return (
+    <div>
+      <div
+        className="mb-5 text-[11px] font-semibold uppercase tracking-[0.15em]"
+        style={{ color: "#6B8AFF" }}
+      >
+        {title}
+      </div>
+      <div className="flex flex-col gap-6">
+        {items.map((item) => (
+          <div key={item.title}>
+            <h3 className="text-base font-semibold text-white">
+              {item.title}
+            </h3>
+            <p
+              className="mt-1.5 text-sm leading-relaxed"
+              style={{ color: "#B8C4D9" }}
+            >
+              {item.body}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PipelineStep({
+  n,
+  title,
+  detail,
+}: {
+  n: string;
+  title: string;
+  detail: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg font-mono text-xs font-bold"
+        style={{
+          background: "rgba(59, 107, 255, 0.15)",
+          color: "#6B8AFF",
+        }}
+      >
+        {n}
+      </span>
+      <div className="min-w-0">
+        <div className="text-sm font-medium text-white">{title}</div>
+        <div className="mt-0.5 text-xs" style={{ color: "#8B95AB" }}>
+          {detail}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Arrow() {
+  return (
+    <div
+      className="ml-3 h-4 w-px"
+      style={{ background: "rgba(255,255,255,0.08)" }}
+    />
   );
 }
