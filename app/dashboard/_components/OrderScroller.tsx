@@ -20,7 +20,7 @@ export function OrderScroller({
   const nudge = (dir: 1 | -1) => {
     const el = ref.current;
     if (!el) return;
-    // scroll by ~2 cards at a time (2 × 340 + gap 16 = 696)
+    // 1 card (340) + gap (16) = 356 on desktop
     el.scrollBy({ left: dir * 356, behavior: "smooth" });
   };
 
@@ -36,17 +36,18 @@ export function OrderScroller({
       <div
         ref={ref}
         onScroll={onScroll}
-        className="thin-scroll -mx-1 flex snap-x gap-4 overflow-x-auto px-1 pb-4"
+        className="thin-scroll -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-4 sm:gap-4"
       >
         {children}
       </div>
 
-      {/* Bottom nav: chevron ← progress → chevron */}
-      <div className="mt-5 flex items-center gap-3">
+      {/* Bottom nav */}
+      <div className="mt-4 flex items-center gap-3 sm:mt-5">
+        {/* Chevrons hidden on mobile — swipe is natural */}
         <button
           aria-label="Scroll left"
           onClick={() => nudge(-1)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border shadow-sm transition-all duration-200 hover:shadow-md"
+          className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full border shadow-sm transition-all duration-200 hover:shadow-md sm:flex"
           style={btnStyle}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "#F0F4FF";
@@ -71,7 +72,7 @@ export function OrderScroller({
 
         {/* Progress bar */}
         <div
-          className="h-2 flex-1 overflow-hidden rounded-full"
+          className="h-1.5 flex-1 overflow-hidden rounded-full sm:h-2"
           style={{ background: "#EDF0F8" }}
         >
           <div
@@ -87,7 +88,7 @@ export function OrderScroller({
         <button
           aria-label="Scroll right"
           onClick={() => nudge(1)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border shadow-sm transition-all duration-200 hover:shadow-md"
+          className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full border shadow-sm transition-all duration-200 hover:shadow-md sm:flex"
           style={btnStyle}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "#F0F4FF";

@@ -244,8 +244,7 @@ export default async function Overview() {
                     ["--i" as string]: i,
                     borderRadius: 16,
                   }}
-                  className="card lift order-card fade-up flex w-[340px] shrink-0 snap-start flex-col !p-5"
-                >
+                  className="kpi-card fade-up flex w-[80vw] max-w-[340px] shrink-0 snap-start flex-col !p-4 sm:w-[340px] sm:!p-5"                >
                   <StatusChip
                     tone={
                       orderTone[o.status as keyof typeof orderTone] ??

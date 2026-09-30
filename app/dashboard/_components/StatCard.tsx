@@ -2,10 +2,6 @@
 // app/dashboard/_components/StatCard.tsx
 import { useEffect, useState } from "react";
 
-/**
- * Each tone has an icon color (top-left square) and a data color
- * (micro-chart + neutral delta state).
- */
 const tones = {
   blue: { icon: "#3B6BFF", iconSoft: "#E5EDFF", data: "#3B6BFF" },
   purple: { icon: "#8B5CF6", iconSoft: "#F0E8FF", data: "#F59E0B" },
@@ -50,6 +46,7 @@ function MicroChart({
   }
   const areaD = `${d} L ${w},${h} L 0,${h} Z`;
   const gid = `mc-grad-${index}`;
+  const pathId = `mc-path-${index}`;
 
   return (
     <svg
@@ -68,8 +65,13 @@ function MicroChart({
       </defs>
       <path d={areaD} fill={`url(#${gid})`} />
       <path
-        className="micro-chart-path"
-        style={{ ["--i" as string]: index }}
+        id={pathId}
+        className="kpi-chart-draw"
+        style={{
+          ["--i" as string]: index,
+          strokeDasharray: 400,
+          strokeDashoffset: 400,
+        }}
         d={d}
         stroke={color}
         strokeWidth="2"
@@ -135,42 +137,46 @@ export function StatCard({
         ["--i" as string]: index,
         borderRadius: 20,
       }}
-      className="card lift fade-up-scale relative overflow-hidden bg-white p-6"
+      className="kpi-card fade-up-scale relative overflow-hidden bg-white p-5 sm:p-6"
     >
-      {/* soft glow bottom-right */}
+      {/* top-right corner glow — matches the KPI accent */}
       <div
-        className="kpi-glow pointer-events-none absolute bottom-0 right-0 h-32 w-40"
+        className="kpi-glow pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full"
         style={{
-          background: `radial-gradient(circle at bottom right, ${data}1f, transparent 70%)`,
+          background: `radial-gradient(circle, ${data}22 0%, transparent 70%)`,
         }}
       />
 
       {/* top row — icon + label + menu */}
-      <div className="relative flex items-start justify-between">
-        <div className="flex items-center gap-3.5">
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <span
-            className="flex h-11 w-11 items-center justify-center rounded-2xl"
-            style={{ background: iconSoft, color: iconColor }}
+            className="kpi-icon flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-2xl"
+            style={{
+              ["--i" as string]: index,
+              background: iconSoft,
+              color: iconColor,
+            }}
           >
             <span
               style={{
                 display: "inline-flex",
-                width: 20,
-                height: 20,
+                width: 18,
+                height: 18,
               }}
             >
               {icon}
             </span>
           </span>
           <span
-            className="text-[11px] font-semibold uppercase tracking-[0.12em]"
+            className="truncate text-[10px] font-semibold uppercase tracking-[0.12em] sm:text-[11px]"
             style={{ color: "#8B95AB" }}
           >
             {label}
           </span>
         </div>
 
-        <span style={{ color: "#C4CBDA" }}>
+        <span className="hidden shrink-0 sm:inline" style={{ color: "#C4CBDA" }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <circle cx="5" cy="12" r="1.6" />
             <circle cx="12" cy="12" r="1.6" />
@@ -179,21 +185,23 @@ export function StatCard({
         </span>
       </div>
 
-      {/* middle row — big number + micro-chart */}
+      {/* middle row — big number (chart hidden on mobile) */}
       <div className="relative mt-4 flex items-end justify-between gap-4">
         <div
-          className="tnum text-[1.875rem] font-bold leading-none tracking-tight"
+          className="tnum text-3xl font-bold leading-none tracking-tight sm:text-[1.875rem]"
           style={{ color: "#0B1220" }}
         >
           {shown}
         </div>
-        <MicroChart color={data} trend={trend} index={index} />
+        <span className="hidden sm:block">
+          <MicroChart color={data} trend={trend} index={index} />
+        </span>
       </div>
 
       {/* bottom row — delta */}
       {delta && (
         <div
-          className="relative mt-3 flex items-center gap-1.5 text-sm font-medium"
+          className="relative mt-3 flex items-center gap-1.5 text-xs font-medium sm:text-sm"
           style={deltaStyle}
         >
           {deltaTone === "flat" ? (
@@ -219,7 +227,7 @@ export function StatCard({
               )}
             </svg>
           )}
-          {delta}
+          <span className="truncate">{delta}</span>
         </div>
       )}
     </div>
