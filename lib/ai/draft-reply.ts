@@ -191,13 +191,22 @@ Write ONE short reply the owner can send as-is. If the customer asked for a
 price and you see a matching product in the catalogue above, quote that
 price. If no match, do not invent a price — say you will confirm shortly.`;
 
-    const raw = await chat({
+        const raw = await chat({
       messages: [
         { role: "system", content: DRAFT_SYSTEM_PROMPT },
         { role: "user", content: userPrompt },
       ],
       temperature: 0.4,
       json: false,
+      // Prefer fast models for drafting — drafting is user-facing and
+      // must return in a few seconds. Groq is 10× faster than OpenRouter
+      // for text.
+      models: [
+        "groq/llama-3.3-70b-versatile",
+        "groq/llama-3.1-8b-instant",
+        "openrouter/free",
+        "openai/gpt-oss-20b:free",
+      ],
     });
 
     const draft = raw.trim().replace(/^["']|["']$/g, "");

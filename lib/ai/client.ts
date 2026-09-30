@@ -60,8 +60,8 @@ export async function chat({
   maxRetries = 2,
   json = true,
 }: ChatOptions): Promise<string> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
+  const openrouterKey = process.env.OPENROUTER_API_KEY;
+  const groqKey = process.env.GROQ_API_KEY;
 
   const modelList = models || getTextModelList();
   let lastError: Error | null = null;
@@ -69,33 +69,51 @@ export async function chat({
   for (const model of modelList) {
     console.log(`[AI] Trying: ${model}`);
 
+    // Route to Groq if the model is prefixed with "groq/"
+    const isGroq = model.startsWith("groq/");
+    const endpoint = isGroq
+      ? "https://api.groq.com/openai/v1/chat/completions"
+      : "https://openrouter.ai/api/v1/chat/completions";
+    const key = isGroq ? groqKey : openrouterKey;
+    const actualModel = isGroq ? model.slice("groq/".length) : model;
+
+    if (!key) {
+      console.warn(`[AI] ${isGroq ? "GROQ_API_KEY" : "OPENROUTER_API_KEY"} not set, skipping ${model}`);
+      continue;
+    }
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const res = await fetch(
-          "https://openrouter.ai/api/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              "Content-Type": "application/json",
-              "HTTP-Referer": "https://fluxo.app",
-              "X-Title": "Fluxo",
-            },
-                        body: JSON.stringify({
-              model,
-              messages,
-              temperature,
-              ...(json
-                ? { response_format: { type: "json_object" } }
-                : {}),
-              provider: {
-                sort: "throughput",
-                allow_fallbacks: true,
-                require_parameters: true,
-              },
-            }),
-          }
-        );
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${key}`,
+            "Content-Type": "application/json",
+            ...(isGroq
+              ? {}
+              : {
+                  "HTTP-Referer": "https://fluxo.app",
+                  "X-Title": "Fluxo",
+                }),
+          },
+          body: JSON.stringify({
+            model: actualModel,
+            messages,
+            temperature,
+            ...(json
+              ? { response_format: { type: "json_object" } }
+              : {}),
+            ...(isGroq
+              ? { max_tokens: 900 }
+              : {
+                  provider: {
+                    sort: "throughput",
+                    allow_fallbacks: true,
+                    require_parameters: true,
+                  },
+                }),
+          }),
+        });
 
         if (res.status >= 500 || res.status === 429) {
           const text = await res.text();
