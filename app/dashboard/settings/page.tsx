@@ -5,6 +5,7 @@ import { CurrencySettings } from "./CurrencySettings";
 import { BusinessInfo } from "./BusinessInfo";
 import { DisconnectButton } from "./DisconnectButton";
 import { DraftNotificationsToggle } from "./DraftNotificationsToggle";
+import { IncomingNotificationsToggle } from "./IncomingNotificationsToggle";
 import { HighValueThresholdInput } from "./HighValueThresholdInput";
 import { ConnectWhatsApp } from "./ConnectWhatsApp";
 const BORDER = "#E6EAF5";
@@ -123,6 +124,31 @@ export default async function Settings() {
           </p>
           <DraftNotificationsToggle
             initialEnabled={user.draftNotifications ?? false}
+          />
+        </section>
+
+        
+        {/* Incoming message notifications */}
+        <section
+          style={{ ...card, animationDelay: "130ms" }}
+          className="fade-up"
+        >
+          <h2
+            className="mb-1 text-base font-semibold tracking-tight"
+            style={{ color: TEXT_PRIMARY }}
+          >
+            Incoming message alerts
+          </h2>
+          <p className="mb-4 text-sm" style={{ color: TEXT_SECONDARY }}>
+            Get a short WhatsApp ping on your own number whenever a
+            customer sends an order, question, complaint, or payment.
+            Off by default.
+          </p>
+          <IncomingNotificationsToggle
+            initialEnabled={
+              (user as { notifyIncomingMessages?: boolean }).notifyIncomingMessages ??
+              false
+            }
           />
         </section>
 

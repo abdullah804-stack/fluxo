@@ -74,9 +74,19 @@ export async function notifyOwnerWithDraft({
       draftText: draft,
     });
 
-    const displayName = customer?.name || customerPhone || "a customer";
-    const header = `💡 *Suggested reply for ${displayName}*`;
-    const body = `${header}\n\n${draft}\n\n_Reply *send ${displayName}* to send it, or *_edit ${displayName} [new text]*_ to change it. Skip with *skip ${displayName}*._`;
+        const displayName = customer?.name || customerPhone || "a customer";
+    const preview =
+      draft.length > 80 ? draft.slice(0, 80) + "…" : draft;
+
+    const body = [
+      `💡 *Draft ready for ${displayName}*`,
+      ``,
+      `_"${preview}"_`,
+      ``,
+      `Reply *send ${displayName}* to approve`,
+      `Reply *edit ${displayName} [new text]* to change`,
+      `Reply *skip ${displayName}* to ignore`,
+    ].join("\n");
 
     const ownerNumber = account.phoneNumber.replace(/\D/g, "");
     await sendWhatsAppMessage(ownerNumber, body);

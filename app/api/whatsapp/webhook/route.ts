@@ -18,6 +18,7 @@ import {
   formatWeeklyReport,
 } from "@/lib/reports/weekly";
 import { notifyHighValueOrder } from "@/lib/whatsapp/notify-high-value";
+import { notifyIncomingMessage } from "@/lib/whatsapp/notify-incoming";
 import { listProducts } from "@/lib/products/queries";
 import { findBestProductMatch, resolvePrice } from "@/lib/products/lookup";
 import { buildCatalogueSummary } from "@/lib/products/catalogue-context";
@@ -458,17 +459,40 @@ async function extractInBackground(
       });
     }
 
-    // Owner notification: if this message is a question, ping the owner
-    // with a draft reply (only if they've opted in via Settings).
+        // Owner notifications.
+    // - If draft notifications are on AND this is a question, the draft ping
+    //   covers it — skip the generic incoming ping to avoid double messages.
+    // - Otherwise, ping for high-signal intents (order / complaint / question
+    //   / payment) if the owner has enabled incoming alerts.
+
+    let draftPinged = false;
+
     if (extracted.intent === "question") {
-      notifyOwnerWithDraft({
-        messageId,
-        accountId,
-        userId,
-        customerPhone: fromNumber,
-        messageContent: content,
+      const ownerPref = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { draftNotifications: true },
       });
+      if (ownerPref?.draftNotifications) {
+        notifyOwnerWithDraft({
+          messageId,
+          accountId,
+          userId,
+          customerPhone: fromNumber,
+          messageContent: content,
+        });
+        draftPinged = true;
+      }
     }
+
+    notifyIncomingMessage({
+      messageId,
+      accountId,
+      userId,
+      customerPhone: fromNumber,
+      messageContent: content,
+      intent: extracted.intent,
+      skip: draftPinged,
+    });
   } catch (aiError) {
     console.error("[webhook] background extraction failed:", aiError);
   }

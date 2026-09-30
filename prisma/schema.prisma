@@ -76,6 +76,7 @@ model WhatsAppAccount {
   customers Customer[]
   orders   Order[]
   pendingDrafts PendingDraft[]
+  notifyIncomingMessages Boolean @default(false)
   products Product[]
 
   @@index([userId])

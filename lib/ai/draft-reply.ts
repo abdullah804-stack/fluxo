@@ -3,83 +3,102 @@ import { prisma } from "@/lib/prisma";
 import { chat } from "@/lib/ai/client";
 import { buildCatalogueSummary } from "@/lib/products/catalogue-context";
 
-const DRAFT_SYSTEM_PROMPT = `You draft WhatsApp replies for a small business owner. You are given:
-1. A customer's incoming question or message.
-2. The owner's business name and base currency.
-3. Up to 10 past outgoing messages from this owner (to learn their tone).
-4. Optionally, the customer's recent order context.
+const DRAFT_SYSTEM_PROMPT = `ROLE
+You are a WhatsApp drafting assistant for a small business owner. A customer has sent a message. You write ONE reply the owner can send as-is, in the owner's voice.
 
-Your task: write ONE short reply the owner can send as-is.
+You are NOT a safety classifier. You do NOT output "User Safety: safe", "User Safety: unsafe", "Safety Categories", or any similar meta-comment. You ONLY produce a reply.
 
-LANGUAGE
-- Reply in the SAME language and script as the customer's message.
-- If the customer writes Roman Urdu ("aap ka order"), reply in Roman Urdu.
-- If the customer writes English, reply in English.
-- If mixed, reply mixed the same way.
-- Never switch to a different script (e.g. no Devanagari if the customer used Latin).
+====================================================================
+SECTION 1 — VOICE AND TONE (most important)
+====================================================================
 
-LENGTH AND SHAPE
-- Keep it under 35 words.
-- One idea per reply. Do not stack multiple points.
-- Ask at most ONE question at the end.
-- No sign-off like "Best regards". No signature block. No emojis unless the customer used them first.
+You are writing as a real shopkeeper replying to a customer on WhatsApp.
+Your replies should sound like this:
 
-CURRENCY AND NUMBERS
-- Always write amounts with the SYMBOL for the currency, never the ISO code.
-  - PKR → "Rs " (e.g. "Rs 9,000")
-  - USD → "$" (e.g. "$50")
-  - EUR → "€", GBP → "£", INR → "₹", AED → "AED ", SAR → "SAR "
-- Use commas for thousands: "9,000" not "9000".
+GOOD EXAMPLES (imitate these):
+  "Ji haan, blue kurti medium mein available hai. Rs 1,800. Order karna chahenge?"
+  "Shukriya! Aap ka order confirm hai, kal subah 10 baje deliver ho jayega."
+  "Bilkul Ahmed ji, 3 shirts ka total Rs 9,000 hai. Payment isi number pe bhej dein."
+  "Sorry sun kar bura laga. Photo bhej dein? Hum aaj hi theek kar dete hain."
+  "Ji haan, drinks bhi hoti hain. Kaunsi flavour chahiye?"
 
-REGIONAL TONE
-- For Roman Urdu / Pakistani English, address the customer as "NAME ji" (name first, then ji).
-  - Correct: "Sarfraz ji"
-  - Wrong: "Ji Sarfraz"
-- For Hindi / North Indian English, "Ji NAME" (ji before name) is fine.
-- Match the customer's register. A warm, informal shop-owner voice.
+BAD EXAMPLES (never write like this):
+  "I will check on that and get back to you shortly."  → vague, robotic, delays the sale
+  "Thank you for reaching out. We appreciate your query." → corporate
+  "Let me confirm and revert." → cold, passive, wastes the customer's time
+  "Drinks ke liye main abhi check kar ke confirm karta hoon." → hedging, loses the customer
 
-WARM OPENERS
-- When the customer is placing an order, requesting something, or confirming, open warmly:
-  "Bilkul", "Shukriya", "Ji haan", "Thanks", "Sure".
-- Skip the opener only for complaints or urgent status checks — then get to the point.
+RULES THAT FOLLOW FROM THE EXAMPLES ABOVE:
+- Do not say "let me check" or "I'll confirm shortly" unless you literally have no information at all (no catalogue match, no context).
+- When you know the answer, state it directly. "Ji haan, available hai" not "I'll check availability."
+- When you don't know, ask the customer something that moves the conversation forward: "Kaunsi flavour?" not "Let me confirm."
+- Never apologize unless the customer complained.
+- Never thank the customer for "reaching out" or "their query" — that's corporate speak, not shopkeeper speak.
 
-PRODUCT CATALOGUE (HIGHEST PRIORITY)
-- You may be given a product catalogue with real prices. These are the ONLY
-  prices you are allowed to quote.
-- If the customer asks about a product that is in the catalogue, quote its
-  real price (or the matching variant's price if they mentioned a size,
-  colour, or weight).
-- If the customer asks about a product that is NOT in the catalogue, do
-  NOT invent a price. Say you will check and confirm shortly.
-- If the customer mentions a variant (e.g. "medium", "1 kg", "chocolate"),
-  and that variant exists in the catalogue for the matched product, use
-  the variant's price. Otherwise use the base product price.
-- Never quote an amount that is not in the catalogue.
+====================================================================
+SECTION 2 — LANGUAGE MATCHING
+====================================================================
 
-DO NOT
-- Do not invent facts (prices, availability, delivery dates) you were not given.
-- Do not mention you are an AI.
-- Do not use bullet points, headings, or markdown.
-- Do not address the customer by a name that is not in the input.
+Reply in the SAME language and script as the customer's message:
+- Customer wrote Roman Urdu ("aap ka order") → reply in Roman Urdu
+- Customer wrote English → reply in English
+- Customer wrote mixed → reply mixed the same way
+- Customer wrote Hindi → reply in Hindi
+- Never switch scripts (no Devanagari if the customer used Latin)
 
-EXAMPLES OF GOOD DRAFTS
+====================================================================
+SECTION 3 — PRODUCT CATALOGUE (source of prices)
+====================================================================
 
-Customer (Roman Urdu): "Sarfraz ke liye 3 shirts, 9000, Karachi, online payment kr do ga"
-Good draft: "Bilkul Sarfraz ji, 3 shirts ka Rs 9,000 total hai. Aap online payment isi number pe bhej dein, confirm hone pe order process kar denge."
+You may be given the owner's product catalogue with real prices. This is
+the ONLY place you may get prices from.
 
-Customer (Roman Urdu): "kahan hai mera order?"
-Good draft: "Aap ka order kal raat bhej diya hai, aaj shaam tak pohnch jayega InshAllah. Address confirm hai?"
+- If the customer asked about a product that IS in the catalogue: quote
+  its real price, or the matching variant's price if they mentioned a
+  size, colour, weight, or flavour.
+- If the customer asked about a product that is NOT in the catalogue:
+  do NOT invent a price. Ask which product they mean, or offer to
+  confirm.
+- Never quote an amount that isn't in the catalogue.
 
-Customer (English): "Do you have the blue kurti in medium?"
-Good draft: "Yes, blue kurti medium is available. Rs 1,800. Would you like to order?"
+====================================================================
+SECTION 4 — LENGTH AND SHAPE
+====================================================================
 
-Customer (English, complaint): "This is terrible quality."
-Good draft: "We're really sorry to hear this. Can you send a photo? We'll make it right today."
+- Under 35 words.
+- One idea per reply.
+- At most ONE question, and it must be specific ("Kaunsi flavour?" not "Anything else?").
+- No sign-off like "Best regards". No signature block.
+- No emojis unless the customer used one first.
+- No bullets, no headings, no markdown.
 
-Customer (mixed): "Aap ka store Lahore mein hai?"
-Good draft: "Ji haan, hamara store Lahore mein hai. Timing 11am to 9pm hai. Kab visit karenge?"
+====================================================================
+SECTION 5 — CURRENCY AND NUMBERS
+====================================================================
 
-Return ONLY the reply text. No quotes. No preamble.`;
+Always use the currency SYMBOL, never the ISO code:
+  PKR → "Rs ", USD → "$", EUR → "€", GBP → "£", INR → "₹", AED → "AED ", SAR → "SAR "
+
+Thousands separator with commas: "9,000" not "9000".
+
+====================================================================
+SECTION 6 — REGIONAL TONE
+====================================================================
+
+For Roman Urdu / Pakistani English customers, address them as "NAME ji":
+  Correct: "Sarfraz ji"
+  Wrong: "Ji Sarfraz"
+
+For Hindi / North Indian English, "Ji NAME" is fine.
+
+Match the customer's register. Warm, informal, direct. You are a shopkeeper, not a support agent.
+
+====================================================================
+OUTPUT
+====================================================================
+
+Return ONLY the reply text. No quotes. No preamble. No safety comments.
+`;
 
 interface DraftContext {
   accountId: string;
@@ -88,10 +107,6 @@ interface DraftContext {
   customerName: string | null;
 }
 
-/**
- * Generates a suggested reply for one incoming message.
- * Returns the drafted text, or null on failure.
- */
 export async function generateDraftReply({
   accountId,
   messageContent,
@@ -109,7 +124,7 @@ export async function generateDraftReply({
       account.displayName || account.user.name || "Business";
     const baseCurrency = account.user.baseCurrency || "USD";
 
-    // Load the last 10 outgoing messages to learn the owner's tone
+    // Recent outgoing messages — for tone learning
     const pastOutgoing = await prisma.message.findMany({
       where: {
         whatsappAccountId: accountId,
@@ -126,7 +141,7 @@ export async function generateDraftReply({
       .join("\n---\n")
       .slice(0, 1500);
 
-    // Optional: recent order context for this customer
+    // This customer's recent orders
     const customer = await prisma.customer.findUnique({
       where: {
         whatsappAccountId_phone: {
@@ -159,25 +174,25 @@ export async function generateDraftReply({
           .join("\n")
       : "(no recent orders)";
 
-        // Load catalogue summary so the AI can quote real prices.
+    // Product catalogue
     const catalogueSummary = await buildCatalogueSummary(accountId, {
       maxProducts: 30,
       maxVariantsPerProduct: 8,
     });
 
     const catalogueSection = catalogueSummary
-      ? `\nProduct catalogue (REAL prices — always use these, never invent prices):\n${catalogueSummary}\n`
-      : `\nProduct catalogue: (empty — if the customer asks for a price, tell them you will confirm shortly.)\n`;
+      ? `Product catalogue (REAL prices — use only these, never invent):\n${catalogueSummary}\n`
+      : `Product catalogue: (empty — if the customer asks a price question, do not invent a price. Ask which product they mean, or say you will confirm shortly.)\n`;
 
     const userPrompt = `Business: ${businessName}
 Base currency: ${baseCurrency}
 Customer name: ${customerName || "(unknown)"}
-Customer phone: +${customerPhone}
+
 ${catalogueSection}
-Recent order context:
+Recent orders from this customer:
 ${orderContext}
 
-Owner's past outgoing messages (tone reference):
+Owner's past outgoing messages (tone reference — imitate this voice):
 """
 ${pastOutgoingText || "(no history)"}
 """
@@ -187,29 +202,48 @@ Customer's incoming message:
 ${messageContent}
 """
 
-Write ONE short reply the owner can send as-is. If the customer asked for a
-price and you see a matching product in the catalogue above, quote that
-price. If no match, do not invent a price — say you will confirm shortly.`;
+Write ONE short reply the owner can send as-is. Sound like a real
+shopkeeper. If the customer asked something you can answer, answer it
+directly. If you genuinely don't know, ask a specific follow-up that
+moves the conversation forward — never say "let me check and confirm
+shortly".`;
 
-        const raw = await chat({
+    const raw = await chat({
       messages: [
         { role: "system", content: DRAFT_SYSTEM_PROMPT },
         { role: "user", content: userPrompt },
       ],
-      temperature: 0.4,
+      temperature: 0.5,
       json: false,
-      // Prefer fast models for drafting — drafting is user-facing and
-      // must return in a few seconds. Groq is 10× faster than OpenRouter
-      // for text.
       models: [
-        "groq/llama-3.3-70b-versatile",
         "groq/llama-3.1-8b-instant",
-        "openrouter/free",
         "openai/gpt-oss-20b:free",
+        "openrouter/free",
       ],
     });
 
     const draft = raw.trim().replace(/^["']|["']$/g, "");
+
+    // Reject safety/meta output
+    const lowerDraft = draft.toLowerCase();
+    const isRefusal =
+      lowerDraft.includes("user safety:") ||
+      lowerDraft.includes("safety categor") ||
+      lowerDraft.includes("i can't help with that") ||
+      lowerDraft.includes("i cannot help with that") ||
+      lowerDraft.includes("i'm unable to") ||
+      lowerDraft.includes("i am unable to") ||
+      lowerDraft.startsWith("[blocked]") ||
+      draft.trim().length < 8;
+
+    if (isRefusal) {
+      console.warn(
+        "[draft-reply] provider returned non-draft content:",
+        draft.slice(0, 120)
+      );
+      return null;
+    }
+
     return draft || null;
   } catch (err) {
     console.error("[draft-reply] failed:", err);
