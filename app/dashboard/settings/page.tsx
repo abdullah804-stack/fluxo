@@ -6,7 +6,7 @@ import { BusinessInfo } from "./BusinessInfo";
 import { DisconnectButton } from "./DisconnectButton";
 import { DraftNotificationsToggle } from "./DraftNotificationsToggle";
 import { HighValueThresholdInput } from "./HighValueThresholdInput";
-
+import { ConnectWhatsApp } from "./ConnectWhatsApp";
 const BORDER = "#E6EAF5";
 const LINE_SOFT = "#F3F5FB";
 const TEXT_PRIMARY = "#0B1220";
@@ -57,7 +57,7 @@ export default async function Settings() {
             WhatsApp connection
           </h2>
 
-          {account ? (
+                    {account ? (
             <dl>
               {row("Number", <span className="tnum">{account.phoneNumber}</span>)}
               {row(
@@ -73,10 +73,7 @@ export default async function Settings() {
               )}
             </dl>
           ) : (
-            <p className="text-sm" style={{ color: TEXT_SECONDARY }}>
-              No number connected. Use the connection form to link your
-              WhatsApp Business account.
-            </p>
+            <ConnectWhatsApp />
           )}
         </section>
 
