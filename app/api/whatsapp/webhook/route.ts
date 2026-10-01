@@ -38,6 +38,7 @@ import {
 } from "@/lib/whatsapp/send";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const prisma = new PrismaClient();
 
@@ -164,16 +165,16 @@ export async function POST(req: Request) {
       if (isOwnerNumber) {
         const looksLikeCommand = quickCommandCheck(content);
 
-        if (looksLikeCommand) {
+          if (looksLikeCommand) {
           console.log("[webhook] owner command:", content);
-          handleCommandInBackground(content, account.id, fromNumber);
+          await handleCommandInBackground(content, account.id, fromNumber);
           return NextResponse.json({ ok: true });
         }
 
         console.log("[webhook] owner non-command, extracting:", content);
       }
 
-      extractInBackground(
+        await extractInBackground(
         storedMessage.id,
         content,
         account.userId,
@@ -190,7 +191,7 @@ export async function POST(req: Request) {
         // but we log this in case we want command support later.
         console.log("[webhook] owner voice note, extracting");
       }
-      handleVoiceNoteInBackground(
+        handleVoiceNoteInBackground(
         storedMessage.id,
         mediaId,
         account.userId,
@@ -202,7 +203,7 @@ export async function POST(req: Request) {
     // IMAGE — placeholder for future vision pipeline
         // IMAGE — analyze via vision model
     else if (type === "image" && mediaId) {
-      handleImageInBackground(
+        await handleImageInBackground(
         storedMessage.id,
         mediaId,
         account.userId,
@@ -452,7 +453,7 @@ async function extractInBackground(
 
       // High-value alert — fires only if the owner set a threshold
       // and this order's baseAmount crosses it.
-      notifyHighValueOrder({
+        await notifyHighValueOrder({
         orderId: createdOrder.id,
         accountId,
         userId,
@@ -473,7 +474,7 @@ async function extractInBackground(
         select: { draftNotifications: true },
       });
       if (ownerPref?.draftNotifications) {
-        notifyOwnerWithDraft({
+          await notifyOwnerWithDraft({
           messageId,
           accountId,
           userId,
@@ -484,7 +485,7 @@ async function extractInBackground(
       }
     }
 
-    notifyIncomingMessage({
+      await notifyIncomingMessage({
       messageId,
       accountId,
       userId,
