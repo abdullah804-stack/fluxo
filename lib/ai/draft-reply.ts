@@ -217,11 +217,9 @@ shortly".`;
       json: false,
       // Order matters: fastest and most reliable first.
       // groq/llama-3.3-70b-versatile has no aggressive safety classifier.
-        models: [
-        "openrouter/free",
-        "meta-llama/llama-3.3-70b-instruct:free",
-        "qwen/qwen-3-32b:free",
-      ],
+      // No models override — let client.ts use runtime discovery.
+      // It fetches the current free OpenRouter models and tries them
+      // in order, so retired slugs self-heal.
     });
 
     const draft = raw.trim().replace(/^["']|["']$/g, "");

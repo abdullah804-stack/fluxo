@@ -1,4 +1,5 @@
 // lib/ai/client.ts
+import { getFreeTextModels } from "./openrouter-models";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -18,19 +19,9 @@ interface ChatOptions {
 }
 
 /**
- * Free TEXT models on OpenRouter, tried in order until one succeeds.
- * These do NOT support image input.
- */
-const MODEL_FALLBACKS = [
-  "openrouter/free",
-  "openai/gpt-oss-20b:free",
-  "meta-llama/llama-3.3-70b-instruct:free",
-  "qwen/qwen-3-32b:free",
-];
-
-/**
- * Free VISION models on OpenRouter, tried in order until one succeeds.
- * These support image input (multimodal).
+ * Free VISION models on OpenRouter. These support image input.
+ * Vision models are less subject to retirement than text ones, so a
+ * static list is acceptable here. If one retires, the next is tried.
  */
 export const VISION_MODEL_FALLBACKS = [
   "allenai/molmo-2-8b:free",
@@ -40,17 +31,22 @@ export const VISION_MODEL_FALLBACKS = [
 ];
 
 /**
- * Text-only model list. Never includes vision models.
+ * Get the current text model list. Uses runtime discovery so we
+ * automatically pick up OpenRouter's current free models.
+ *
+ * If OPENROUTER_MODEL is set in env, it goes first.
  */
-function getTextModelList(): string[] {
+async function getTextModelList(): Promise<string[]> {
+  const discovered = await getFreeTextModels();
   const primary = process.env.OPENROUTER_MODEL;
-  if (primary && !MODEL_FALLBACKS.includes(primary)) {
-    return [primary, ...MODEL_FALLBACKS];
+
+  if (primary && !discovered.includes(primary)) {
+    return [primary, ...discovered];
   }
   if (primary) {
-    return [primary, ...MODEL_FALLBACKS.filter((m) => m !== primary)];
+    return [primary, ...discovered.filter((m) => m !== primary)];
   }
-  return MODEL_FALLBACKS;
+  return discovered;
 }
 
 export async function chat({
@@ -63,13 +59,12 @@ export async function chat({
   const openrouterKey = process.env.OPENROUTER_API_KEY;
   const groqKey = process.env.GROQ_API_KEY;
 
-  const modelList = models || getTextModelList();
+  const modelList = models || (await getTextModelList());
   let lastError: Error | null = null;
 
   for (const model of modelList) {
     console.log(`[AI] Trying: ${model}`);
 
-    // Route to Groq if the model is prefixed with "groq/"
     const isGroq = model.startsWith("groq/");
     const endpoint = isGroq
       ? "https://api.groq.com/openai/v1/chat/completions"
@@ -77,7 +72,6 @@ export async function chat({
     const key = isGroq ? groqKey : openrouterKey;
     const actualModel = isGroq ? model.slice("groq/".length) : model;
 
-    // Skip if the required key is missing — log the reason
     if (!key) {
       const keyName = isGroq ? "GROQ_API_KEY" : "OPENROUTER_API_KEY";
       console.warn(`[AI] ${model} skipped — ${keyName} not set`);
@@ -127,7 +121,7 @@ export async function chat({
           );
           if (attempt < maxRetries) {
             await new Promise((r) =>
-              setTimeout(r, 1000 * Math.pow(2, attempt - 1))
+              setTimeout(r, 800 * Math.pow(2, attempt - 1))
             );
             continue;
           }
@@ -140,7 +134,7 @@ export async function chat({
             `${isGroq ? "Groq" : "OpenRouter"} error ${res.status}: ${text}`
           );
           console.warn(
-            `[AI] ${model} HTTP ${res.status}: ${text.slice(0, 200)}`
+            `[AI] ${model} HTTP ${res.status}: ${text.slice(0, 160)}`
           );
           break;
         }
@@ -164,7 +158,7 @@ export async function chat({
         console.warn(`[AI] ${model} threw: ${error.message}`);
         if (attempt < maxRetries) {
           await new Promise((r) =>
-            setTimeout(r, 1000 * Math.pow(2, attempt - 1))
+            setTimeout(r, 800 * Math.pow(2, attempt - 1))
           );
           continue;
         }
