@@ -6,7 +6,7 @@ This document describes how Fluxo is built: the pipeline, the data model, and th
 
 ## 1. High-level architecture
 
-![High-level architecture](public/screenshots/diaghrams/01-architecture.jpg)
+![High-level architecture](public/screenshots/diagrams/01-architecture.jpg)
 
 **Deployment:** Vercel, with Fluid Compute. The webhook function is configured for 300-second execution.
 
@@ -31,136 +31,83 @@ If the sender is the owner and the text looks like a command (`quickCommandCheck
 
 ### 2.2 Customer message pipeline
 
-![Customer message pipeline](public/screenshots/diaghrams/02-pipeline.jpg)
-Text message
-↓
-Build context: business name, base currency, phone country code,
-catalogue summary (from seller's Product table)
-↓
-extractMessage() ──► OpenRouter (JSON mode)
-↓
-ExtractedMessage {
-intent, confidence, language,
-customer: { name, phone },
-order: { items, total, currency, currency_confidence,
-payment_method, address, scheduled_at },
-question, complaint, status_reference, notes
-}
-↓
-Persist extractedData on the Message row
-↓
-If intent === "order" and confidence ≥ 0.7:
-│
-├─► Find or create Customer by phone
-│
-├─► Catalogue lookup: for each item with no price, fuzzy match
-│ against Product table. Fill in prices from matches.
-│ Recompute total if the extractor didn't provide one.
-│
-├─► Currency conversion: if the extracted currency differs from
-│ the seller's base currency, look up the exchange rate
-│ (24h cached) and store originalAmount, originalCurrency,
-│ baseAmount, exchangeRate, exchangeRateDate.
-│
-├─► Parse scheduled_at into a Date
-│
-└─► Create Order row
-│
-├─► notifyHighValueOrder() (if baseAmount ≥ threshold)
-└─► notifyIncomingMessage() (if owner has alerts enabled)
+![Customer message pipeline](public/screenshots/diagrams/02-pipeline.jpg)
 
-If intent === "question" and owner has draft notifications enabled:
-└─► notifyOwnerWithDraft() → generateDraftReply() → ping owner
-
-
+| Step | What happens |
+|---|---|
+| 1 | Text message arrives at the webhook |
+| 2 | Build context: business name, base currency, phone country code, catalogue summary |
+| 3 | `extractMessage()` calls OpenRouter in JSON mode |
+| 4 | Returns an `ExtractedMessage` object: intent, confidence, language, customer, order details, question, complaint |
+| 5 | Persist the extracted data on the `Message` row |
+| 6 | If intent is `order` with confidence ≥ 0.7, continue. Otherwise, stop here. |
+| 7 | Find or create the `Customer` by phone number |
+| 8 | Catalogue lookup: for each item with no price, fuzzy-match against the `Product` table and fill in prices |
+| 9 | Recompute `total` from `sum(quantity × price)` if the extractor didn't provide one |
+| 10 | Currency conversion: convert to base currency, store `originalAmount`, `originalCurrency`, `baseAmount`, `exchangeRate`, `exchangeRateDate` |
+| 11 | Parse `scheduled_at` into a real timestamp |
+| 12 | Create the `Order` row |
+| 13 | Fire `notifyHighValueOrder()` if the base amount crosses the seller's threshold |
+| 14 | Fire `notifyIncomingMessage()` if the owner has alerts enabled |
+| 15 | If intent is `question` and draft notifications are on, fire `notifyOwnerWithDraft()` → `generateDraftReply()` → ping owner |
 
 ### 2.3 Voice pipeline
-Audio message
-↓
-Download media from Meta (media ID → temp URL → bytes)
-↓
-Groq Whisper (large-v3-turbo) with a prompt hint to prefer
-Roman/Latin script over Devanagari
-↓
-Store transcription as Message.content with a [voice] prefix
-↓
-Run the same extractInBackground() path as text
 
-
+| Step | What happens |
+|---|---|
+| 1 | Audio message arrives at the webhook |
+| 2 | Download media from Meta: `media ID → temporary URL → bytes` |
+| 3 | Send audio to Groq Whisper (`large-v3-turbo`) with a prompt hint to prefer Roman/Latin script over Devanagari |
+| 4 | Store the transcription as `Message.content` with a `[voice]` prefix |
+| 5 | Run the same `extractInBackground()` path as text |
 
 ### 2.4 Image pipeline
-Image message
-↓
-Download media from Meta
-↓
-Encode as base64 data URL
-↓
-Groq vision (Qwen3.8-27b) with a JSON-constrained prompt
-↓
-Analysis {
-imageType: "payment_screenshot" | "product_photo" | "delivery_proof" | ...,
-payment: { amount, currency, method, recipient, reference },
-...
-}
-↓
-Store imageAnalysis on the Message row
-↓
-If imageType === "payment_screenshot" with confidence ≥ 0.7:
-└─► Find the customer, find their latest unpaid order,
-mark it paid
 
+| Step | What happens |
+|---|---|
+| 1 | Image message arrives at the webhook |
+| 2 | Download media from Meta |
+| 3 | Encode as a base64 data URL |
+| 4 | Send to Groq vision (`Qwen3.8-27b`) with a JSON-constrained prompt |
+| 5 | Return an `Analysis` object: image type (`payment_screenshot`, `product_photo`, `delivery_proof`), payment details, text in image |
+| 6 | Store `imageAnalysis` on the `Message` row |
+| 7 | If `imageType === "payment_screenshot"` with confidence ≥ 0.7, find the customer, find their latest unpaid order, and mark it paid |
 
 ### 2.5 Owner command pipeline
-Owner types a message
-↓
-quickCommandCheck() — fast regex match against known patterns
-↓
-parseCommand() ──► OpenRouter (JSON mode)
-↓
-ParsedCommand {
-intent: one of ~20 values,
-confidence,
-params: { customer_name, status, query }
-}
-↓
-Deterministic executor — a switch on intent:
-summary, list_pending, list_unpaid, list_repeat, weekly_report,
-mark_shipped, mark_delivered, cancel, mark_paid,
-invoice, remind, remind_one,
-send_draft, edit_draft, skip_draft, list_drafts,
-list_products, search, help
-↓
-Format reply, send via Meta Cloud API
 
-
+| Step | What happens |
+|---|---|
+| 1 | Owner types a message into WhatsApp |
+| 2 | `quickCommandCheck()` runs a fast regex match against known command patterns |
+| 3 | If it matches, `parseCommand()` calls OpenRouter in JSON mode |
+| 4 | Returns a `ParsedCommand`: intent (one of ~20 values), confidence, params (`customer_name`, `status`, `query`) |
+| 5 | Deterministic executor switches on the intent |
+| 6 | Command runs: `summary`, `list_pending`, `list_unpaid`, `list_repeat`, `weekly_report`, `mark_shipped`, `mark_delivered`, `cancel`, `mark_paid`, `invoice`, `remind`, `remind_one`, `send_draft`, `edit_draft`, `skip_draft`, `list_drafts`, `list_products`, `search`, `help` |
+| 7 | Format the reply and send it via Meta Cloud API |
 
 Every command is a pure function of the parsed intent and the database state. **The AI never decides what to do — it only describes what the owner wants. Code decides what happens.**
 
 ### 2.6 Draft approval loop
 
-![Draft approval loop](public/screenshots/diaghrams/04-draft-loop.jpg)
-Customer question
-↓
-generateDraftReply() → context: business, tone (past outgoing
-messages), customer orders, catalogue
-↓
-Store draft on Message.draftReply and create a PendingDraft row
-↓
-Ping the owner with a short preview + three commands
-↓
-Owner replies with one of:
-send [name] → approveAndSendDraft() → WhatsApp to customer
-edit [name] [t] → editDraftText() → re-ping for confirmation
-skip [name] → skipDraft() → status = "skipped"
-↓
-Cron at 00:00 UTC expires stale pending drafts (24h TTL)
+![Draft approval loop](public/screenshots/diagrams/04-draft-loop.jpg)
 
+| Step | What happens |
+|---|---|
+| 1 | Customer sends a question |
+| 2 | `generateDraftReply()` builds context: business, tone (past outgoing messages), customer orders, catalogue |
+| 3 | Store the draft on `Message.draftReply` and create a `PendingDraft` row |
+| 4 | Ping the owner with a short preview and three available commands |
+| 5 | Owner replies with one of three commands |
+| 6a | `send [name]` → `approveAndSendDraft()` → sends to customer via WhatsApp |
+| 6b | `edit [name] [text]` → `editDraftText()` → re-pings for confirmation |
+| 6c | `skip [name]` → `skipDraft()` → status set to `skipped` |
+| 7 | Cron at 00:00 UTC expires stale pending drafts (24h TTL) |
 
 ---
 
 ## 3. Data model
 
-![Data model](public/screenshots/diaghrams/03-data-model.jpg)
+![Data model](public/screenshots/diagrams/03-data-model.jpg)
 
 Nine Prisma models. The schema lives at `prisma/schema.prisma`.
 
@@ -245,11 +192,14 @@ Every webhook POST is signed by Meta. Fluxo verifies the HMAC SHA-256 using `WHA
 Every Prisma query from the dashboard and API is scoped by `whatsappAccountId` derived from the logged-in user. A user cannot read or modify another account's data even if they know an ID.
 
 ### Failure recovery
-- **Vision model fails:** the image is stored, `imageAnalysis` is null, nothing else runs
-- **Extraction fails:** the message is stored, `extractedData` is null, the raw payload is preserved for retry
-- **Draft generation fails:** the owner gets no ping, the message still shows on the dashboard
-- **Send fails (Meta `#131030`):** the failure is logged, the pending draft stays `pending`, the owner can retry
-- **Neon is asleep:** the health check cron keeps it warm; a cold start costs ~5-10s but never fails permanently
+
+| Scenario | What happens |
+|---|---|
+| Vision model fails | Image is stored, `imageAnalysis` is null, nothing else runs |
+| Extraction fails | Message is stored, `extractedData` is null, raw payload preserved for retry |
+| Draft generation fails | Owner gets no ping, message still shows on the dashboard |
+| Send fails (Meta `#131030`) | Failure is logged, pending draft stays `pending`, owner can retry |
+| Neon is asleep | Health check cron keeps it warm; cold start costs ~5-10s but never fails permanently |
 
 ### No secrets in the client
 Every credential (`WHATSAPP_ACCESS_TOKEN`, `OPENROUTER_API_KEY`, etc.) is server-only. No API route returns them. The client only ever sees derived data.
@@ -302,7 +252,6 @@ fluxo/
 └── package.json
 
 
-
 ---
 
 ## 8. Further reading
@@ -313,3 +262,4 @@ fluxo/
 - The drafting prompt: `lib/ai/draft-reply.ts`
 - The webhook (the entry point): `app/api/whatsapp/webhook/route.ts`
 - The data model: `prisma/schema.prisma`
+
