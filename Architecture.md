@@ -6,6 +6,8 @@ This document describes how Fluxo is built: the pipeline, the data model, and th
 
 ## 1. High-level architecture
 
+![High-level architecture](public/screenshots/diagrams/01-architecture.jpg)
+
 **Deployment:** Vercel, with Fluid Compute. The webhook function is configured for 300-second execution.
 
 **Database:** Neon Postgres, free tier, kept warm by a cron-job.org ping to `/api/health` every 4 minutes.
@@ -28,16 +30,15 @@ Every inbound WhatsApp message arrives at `/api/whatsapp/webhook` with an `x-hub
 If the sender is the owner and the text looks like a command (`quickCommandCheck` regex), it goes to the command pipeline. Otherwise, it goes to the extraction pipeline.
 
 ### 2.2 Customer message pipeline
+
+![Customer message pipeline](public/screenshots/diagrams/02-pipeline.jpg)
 Text message
-│
-▼
+↓
 Build context: business name, base currency, phone country code,
 catalogue summary (from seller's Product table)
-│
-▼
+↓
 extractMessage() ──► OpenRouter (JSON mode)
-│
-▼
+↓
 ExtractedMessage {
 intent, confidence, language,
 customer: { name, phone },
@@ -45,11 +46,9 @@ order: { items, total, currency, currency_confidence,
 payment_method, address, scheduled_at },
 question, complaint, status_reference, notes
 }
-│
-▼
+↓
 Persist extractedData on the Message row
-│
-▼
+↓
 If intent === "order" and confidence ≥ 0.7:
 │
 ├─► Find or create Customer by phone
@@ -72,46 +71,40 @@ If intent === "order" and confidence ≥ 0.7:
 
 If intent === "question" and owner has draft notifications enabled:
 └─► notifyOwnerWithDraft() → generateDraftReply() → ping owner
+
+
+
 ### 2.3 Voice pipeline
 Audio message
-│
-▼
+↓
 Download media from Meta (media ID → temp URL → bytes)
-│
-▼
+↓
 Groq Whisper (large-v3-turbo) with a prompt hint to prefer
 Roman/Latin script over Devanagari
-│
-▼
+↓
 Store transcription as Message.content with a [voice] prefix
-│
-▼
+↓
 Run the same extractInBackground() path as text
 
-### 2.4 Image pipeline
 
+
+### 2.4 Image pipeline
 Image message
-│
-▼
+↓
 Download media from Meta
-│
-▼
+↓
 Encode as base64 data URL
-│
-▼
+↓
 Groq vision (Qwen3.8-27b) with a JSON-constrained prompt
-│
-▼
+↓
 Analysis {
 imageType: "payment_screenshot" | "product_photo" | "delivery_proof" | ...,
 payment: { amount, currency, method, recipient, reference },
 ...
 }
-│
-▼
+↓
 Store imageAnalysis on the Message row
-│
-▼
+↓
 If imageType === "payment_screenshot" with confidence ≥ 0.7:
 └─► Find the customer, find their latest unpaid order,
 mark it paid
@@ -119,61 +112,55 @@ mark it paid
 
 ### 2.5 Owner command pipeline
 Owner types a message
-│
-▼
+↓
 quickCommandCheck() — fast regex match against known patterns
-│
-▼
+↓
 parseCommand() ──► OpenRouter (JSON mode)
-│
-▼
+↓
 ParsedCommand {
 intent: one of ~20 values,
 confidence,
 params: { customer_name, status, query }
 }
-│
-▼
+↓
 Deterministic executor — a switch on intent:
 summary, list_pending, list_unpaid, list_repeat, weekly_report,
 mark_shipped, mark_delivered, cancel, mark_paid,
 invoice, remind, remind_one,
 send_draft, edit_draft, skip_draft, list_drafts,
 list_products, search, help
-│
-▼
+↓
 Format reply, send via Meta Cloud API
+
 
 
 Every command is a pure function of the parsed intent and the database state. **The AI never decides what to do — it only describes what the owner wants. Code decides what happens.**
 
 ### 2.6 Draft approval loop
 
+![Draft approval loop](public/screenshots/diagrams/04-draft-loop.jpg)
 Customer question
-│
-▼
+↓
 generateDraftReply() → context: business, tone (past outgoing
 messages), customer orders, catalogue
-│
-▼
+↓
 Store draft on Message.draftReply and create a PendingDraft row
-│
-▼
+↓
 Ping the owner with a short preview + three commands
-│
-▼
+↓
 Owner replies with one of:
 send [name] → approveAndSendDraft() → WhatsApp to customer
 edit [name] [t] → editDraftText() → re-ping for confirmation
 skip [name] → skipDraft() → status = "skipped"
-│
-▼
+↓
 Cron at 00:00 UTC expires stale pending drafts (24h TTL)
 
 
 ---
 
 ## 3. Data model
+
+![Data model](public/screenshots/diagrams/03-data-model.jpg)
 
 Nine Prisma models. The schema lives at `prisma/schema.prisma`.
 
@@ -315,6 +302,7 @@ fluxo/
 └── package.json
 
 
+
 ---
 
 ## 8. Further reading
@@ -325,4 +313,3 @@ fluxo/
 - The drafting prompt: `lib/ai/draft-reply.ts`
 - The webhook (the entry point): `app/api/whatsapp/webhook/route.ts`
 - The data model: `prisma/schema.prisma`
-
