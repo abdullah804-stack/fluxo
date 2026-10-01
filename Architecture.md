@@ -217,42 +217,45 @@ Every credential (`WHATSAPP_ACCESS_TOKEN`, `OPENROUTER_API_KEY`, etc.) is server
 ---
 
 ## 7. Repository layout
+
+```
 fluxo/
-├── app/
-│ ├── api/
-│ │ ├── account/ user settings endpoints
-│ │ ├── auth/ Auth.js routes
-│ │ ├── cron/ scheduled jobs (weekly report, draft expiry)
-│ │ ├── messages/ AI-draft endpoints
-│ │ ├── orders/ order status endpoint
-│ │ ├── products/ catalogue CRUD
-│ │ ├── signup/ credential signup
-│ │ └── whatsapp/ webhook, connect, media
-│ ├── dashboard/ 11 pages (overview, orders, customers, ...)
-│ ├── onboarding/ 2-step wizard
-│ ├── setup-guide/ public WhatsApp setup walkthrough
-│ ├── login/ signup/ auth pages
-│ └── page.tsx landing page
-├── lib/
-│ ├── ai/ client, prompts, extract, draft-reply,
-│ │ commands, vision, transcribe, models
-│ ├── currency/ convert
-│ ├── invoice/ template, generate
-│ ├── products/ queries, lookup, catalogue-context
-│ ├── reports/ weekly
-│ ├── whatsapp/ send, media, drafts, reminders,
-│ │ notify-draft, notify-incoming, notify-high-value
-│ └── prisma.ts shared client
-├── prisma/
-│ ├── schema.prisma
-│ └── migrations/
-├── public/screenshots/
-├── auth.ts
-├── vercel.json
-└── package.json
+  app/
+    api/
+      account/         user settings endpoints
+      auth/            Auth.js routes
+      cron/            scheduled jobs (weekly report, draft expiry)
+      messages/        AI-draft endpoints
+      orders/          order status endpoint
+      products/        catalogue CRUD
+      signup/          credential signup
+      whatsapp/        webhook, connect, media
+    dashboard/         11 pages (overview, orders, customers, ...)
+    onboarding/        2-step wizard
+    setup-guide/       public WhatsApp setup walkthrough
+    login/  signup/    auth pages
+    page.tsx           landing page
 
+  lib/
+    ai/                client, prompts, extract, draft-reply,
+                       commands, vision, transcribe, models
+    currency/          convert
+    invoice/           template, generate
+    products/          queries, lookup, catalogue-context
+    reports/           weekly
+    whatsapp/          send, media, drafts, reminders,
+                       notify-draft, notify-incoming, notify-high-value
+    prisma.ts          shared client
 
----
+  prisma/
+    schema.prisma
+    migrations/
+
+  public/screenshots/
+  auth.ts
+  vercel.json
+  package.json
+```
 
 ## 8. Further reading
 
