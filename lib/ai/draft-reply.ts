@@ -217,10 +217,10 @@ shortly".`;
       json: false,
       // Order matters: fastest and most reliable first.
       // groq/llama-3.3-70b-versatile has no aggressive safety classifier.
-      models: [
-        "groq/llama-3.3-70b-versatile",
-        "groq/llama-3.1-8b-instant",
-        "openai/gpt-oss-20b:free",
+        models: [
+        "openrouter/free",
+        "meta-llama/llama-3.3-70b-instruct:free",
+        "qwen/qwen-3-32b:free",
       ],
     });
 
