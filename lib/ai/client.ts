@@ -77,8 +77,10 @@ export async function chat({
     const key = isGroq ? groqKey : openrouterKey;
     const actualModel = isGroq ? model.slice("groq/".length) : model;
 
+    // Skip if the required key is missing — log the reason
     if (!key) {
-      console.warn(`[AI] ${isGroq ? "GROQ_API_KEY" : "OPENROUTER_API_KEY"} not set, skipping ${model}`);
+      const keyName = isGroq ? "GROQ_API_KEY" : "OPENROUTER_API_KEY";
+      console.warn(`[AI] ${model} skipped — ${keyName} not set`);
       continue;
     }
 
@@ -117,8 +119,12 @@ export async function chat({
 
         if (res.status >= 500 || res.status === 429) {
           const text = await res.text();
-          lastError = new Error(`OpenRouter ${res.status}: ${text}`);
-          console.warn(`[AI] ${model} attempt ${attempt}/${maxRetries} → ${res.status}`);
+          lastError = new Error(
+            `${isGroq ? "Groq" : "OpenRouter"} ${res.status}: ${text}`
+          );
+          console.warn(
+            `[AI] ${model} attempt ${attempt}/${maxRetries} → ${res.status}`
+          );
           if (attempt < maxRetries) {
             await new Promise((r) =>
               setTimeout(r, 1000 * Math.pow(2, attempt - 1))
@@ -130,7 +136,12 @@ export async function chat({
 
         if (!res.ok) {
           const text = await res.text();
-          lastError = new Error(`OpenRouter error ${res.status}: ${text}`);
+          lastError = new Error(
+            `${isGroq ? "Groq" : "OpenRouter"} error ${res.status}: ${text}`
+          );
+          console.warn(
+            `[AI] ${model} HTTP ${res.status}: ${text.slice(0, 200)}`
+          );
           break;
         }
 
@@ -142,6 +153,7 @@ export async function chat({
 
         if (!content) {
           lastError = new Error("Empty response from model");
+          console.warn(`[AI] ${model} returned empty content`);
           break;
         }
 

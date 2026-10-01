@@ -215,20 +215,23 @@ shortly".`;
       ],
       temperature: 0.5,
       json: false,
+      // Order matters: fastest and most reliable first.
+      // groq/llama-3.3-70b-versatile has no aggressive safety classifier.
       models: [
+        "groq/llama-3.3-70b-versatile",
         "groq/llama-3.1-8b-instant",
         "openai/gpt-oss-20b:free",
-        "openrouter/free",
       ],
     });
 
     const draft = raw.trim().replace(/^["']|["']$/g, "");
 
-    // Reject safety/meta output
+    // Reject safety/meta output — never let it reach the owner
     const lowerDraft = draft.toLowerCase();
     const isRefusal =
       lowerDraft.includes("user safety:") ||
       lowerDraft.includes("safety categor") ||
+      lowerDraft.includes("safety category") ||
       lowerDraft.includes("i can't help with that") ||
       lowerDraft.includes("i cannot help with that") ||
       lowerDraft.includes("i'm unable to") ||
