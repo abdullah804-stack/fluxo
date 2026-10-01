@@ -6,7 +6,7 @@ This document describes how Fluxo is built: the pipeline, the data model, and th
 
 ## 1. High-level architecture
 
-![High-level architecture](public/screenshots/diagrams/01-architecture.jpg)
+![High-level architecture](public/screenshots/diaghrams/01-architecture.jpg)
 
 **Deployment:** Vercel, with Fluid Compute. The webhook function is configured for 300-second execution.
 
@@ -31,7 +31,7 @@ If the sender is the owner and the text looks like a command (`quickCommandCheck
 
 ### 2.2 Customer message pipeline
 
-![Customer message pipeline](public/screenshots/diagrams/02-pipeline.jpg)
+![Customer message pipeline](public/screenshots/diaghrams/02-pipeline.jpg)
 Text message
 ↓
 Build context: business name, base currency, phone country code,
@@ -138,7 +138,7 @@ Every command is a pure function of the parsed intent and the database state. **
 
 ### 2.6 Draft approval loop
 
-![Draft approval loop](public/screenshots/diagrams/04-draft-loop.jpg)
+![Draft approval loop](public/screenshots/diaghrams/04-draft-loop.jpg)
 Customer question
 ↓
 generateDraftReply() → context: business, tone (past outgoing
@@ -160,7 +160,7 @@ Cron at 00:00 UTC expires stale pending drafts (24h TTL)
 
 ## 3. Data model
 
-![Data model](public/screenshots/diagrams/03-data-model.jpg)
+![Data model](public/screenshots/diaghrams/03-data-model.jpg)
 
 Nine Prisma models. The schema lives at `prisma/schema.prisma`.
 
