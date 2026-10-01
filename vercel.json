@@ -1,4 +1,13 @@
 {
+  "fluid": true,
+  "functions": {
+    "app/api/whatsapp/webhook/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/messages/[id]/draft/route.ts": {
+      "maxDuration": 300
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/weekly",
