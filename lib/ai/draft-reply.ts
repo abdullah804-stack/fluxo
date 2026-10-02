@@ -215,10 +215,10 @@ shortly".`;
       ],
       temperature: 0.5,
       json: false,
-            models: [
-        "google/gemma-4-26b-a4b-it:free",
-        "dots-studio/dots-3-note-preview:free",
-        "qwen/qwen3.8-27b:free",
+                  models: [
+        "groq/llama-3.3-70b-versatile",
+        "groq/llama-3.1-8b-instant",
+        "openrouter/free",
       ],
     });
 

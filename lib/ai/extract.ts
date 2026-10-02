@@ -43,10 +43,10 @@ export async function extractMessage(
         { role: "user", content: buildExtractorPrompt(messageText, businessName) },
       ],
       temperature: 0.1,
-      models: [
-        "google/gemma-4-31b-it:free",
-        "qwen/qwen3.8-27b:free",
-        "dots-studio/dots-3-note-preview:free",
+            models: [
+        "groq/llama-3.3-70b-versatile",
+        "groq/llama-3.1-8b-instant",
+        "openrouter/free",
       ],
     });
 
