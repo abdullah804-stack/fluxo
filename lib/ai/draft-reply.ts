@@ -215,11 +215,11 @@ shortly".`;
       ],
       temperature: 0.5,
       json: false,
-      // Order matters: fastest and most reliable first.
-      // groq/llama-3.3-70b-versatile has no aggressive safety classifier.
-      // No models override — let client.ts use runtime discovery.
-      // It fetches the current free OpenRouter models and tries them
-      // in order, so retired slugs self-heal.
+            models: [
+        "google/gemma-4-26b-a4b-it:free",
+        "dots-studio/dots-3-note-preview:free",
+        "qwen/qwen3.8-27b:free",
+      ],
     });
 
     const draft = raw.trim().replace(/^["']|["']$/g, "");
