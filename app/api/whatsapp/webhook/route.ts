@@ -1134,14 +1134,17 @@ async function handleCommandInBackground(
               break;
             }
 
-            if (pending.length > 1) {
+                        if (pending.length > 1) {
               const list = pending
-                .map(
-                  (d, i) =>
-                    `${i + 1}. *${d.customerName || d.customerPhone}*`
-                )
-                .join("\n");
-              reply = `Which draft? Reply *send [name]*:\n\n${list}`;
+                .map((d, i) => {
+                  const who = d.customerName || d.customerPhone;
+                  const snippet = d.draftText
+                    .slice(0, 45)
+                    .replace(/\n/g, " ");
+                  return `*${i + 1}.* ${who}\n_"${snippet}…"_`;
+                })
+                .join("\n\n");
+              reply = `Multiple pending drafts. Reply *send [number]*:\n\n${list}`;
               break;
             }
 
@@ -1163,7 +1166,39 @@ async function handleCommandInBackground(
           }
           break;
         }
-
+                // If the name is a number, treat it as an index into the
+        // pending list (1-based) rather than a name lookup.
+        if (/^\d+$/.test(name)) {
+          try {
+            const pending = await prisma.pendingDraft.findMany({
+              where: {
+                whatsappAccountId: accountId,
+                status: "pending",
+                expiresAt: { gt: new Date() },
+              },
+              orderBy: { createdAt: "desc" },
+              take: 10,
+            });
+            const idx = Number(name) - 1;
+            const picked = pending[idx];
+            if (!picked) {
+              reply = `No draft #${name}. Reply *drafts* to see the current list.`;
+              break;
+            }
+            const result = await approveAndSendDraft(picked.id);
+            if (!result.ok) {
+              reply = `Could not send: ${result.error}.`;
+              break;
+            }
+            reply = `✓ Sent reply to *${
+              picked.customerName || picked.customerPhone
+            }*`;
+          } catch (err) {
+            console.error("[send-draft] numeric pick failed:", err);
+            reply = "Failed to send the draft.";
+          }
+          break;
+        }
         try {
           console.log("[send-draft] looking for pending draft:", name);
 
@@ -1396,9 +1431,9 @@ async function handleCommandInBackground(
             return `${i + 1}. *${who}* — ${preview} · ${when}`;
           });
 
-          reply = `📝 *Pending drafts* (${drafts.length})\n\n${lines.join(
+                    reply = `📝 *Pending drafts* (${drafts.length})\n\n${lines.join(
             "\n"
-          )}\n\nReply *send [name]* to send, *edit [name] [text]* to change, *skip [name]* to discard.`;
+          )}\n\nReply *send [number]* to send (e.g. *send 1*), *edit [number] [text]* to change, *skip [number]* to discard.`;
         } catch (err) {
           console.error("[list-drafts] failed:", err);
           reply = "Failed to list drafts.";

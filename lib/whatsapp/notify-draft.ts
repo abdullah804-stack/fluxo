@@ -74,19 +74,42 @@ export async function notifyOwnerWithDraft({
       draftText: draft,
     });
 
-        const displayName = customer?.name || customerPhone || "a customer";
+    // Count how many pending drafts exist for this account right now.
+    // If there's more than one, the reply will need a snippet to
+    // disambiguate them.
+    const pendingCount = await prisma.pendingDraft.count({
+      where: {
+        whatsappAccountId: accountId,
+        status: "pending",
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    const displayName = customer?.name || customerPhone || "a customer";
     const preview =
       draft.length > 80 ? draft.slice(0, 80) + "…" : draft;
 
-        const body = [
+    const lines = [
       `💡 *Draft ready for ${displayName}*`,
       ``,
       `_"${preview}"_`,
       ``,
-      `Reply *send* to approve`,
-      `Reply *edit [new text]* to change`,
-      `Reply *skip* to ignore`,
-    ].join("\n");
+    ];
+
+    if (pendingCount === 1) {
+      // Only one pending draft → bare commands work
+      lines.push(`Reply *send* to approve`);
+      lines.push(`Reply *edit [new text]* to change`);
+      lines.push(`Reply *skip* to ignore`);
+    } else {
+      // Multiple → the owner needs to reference it by number from the
+      // list they'll get when they type `drafts`.
+      lines.push(`_You have ${pendingCount} pending drafts._`);
+      lines.push(`Reply *drafts* to see them all`);
+      lines.push(`Reply *send [number]* to send one`);
+    }
+
+    const body = lines.join("\n");
 
     const ownerNumber = account.phoneNumber.replace(/\D/g, "");
     await sendWhatsAppMessage(ownerNumber, body);
