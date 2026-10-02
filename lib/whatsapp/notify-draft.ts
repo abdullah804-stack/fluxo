@@ -78,14 +78,14 @@ export async function notifyOwnerWithDraft({
     const preview =
       draft.length > 80 ? draft.slice(0, 80) + "…" : draft;
 
-    const body = [
+        const body = [
       `💡 *Draft ready for ${displayName}*`,
       ``,
       `_"${preview}"_`,
       ``,
-      `Reply *send ${displayName}* to approve`,
-      `Reply *edit ${displayName} [new text]* to change`,
-      `Reply *skip ${displayName}* to ignore`,
+      `Reply *send* to approve`,
+      `Reply *edit [new text]* to change`,
+      `Reply *skip* to ignore`,
     ].join("\n");
 
     const ownerNumber = account.phoneNumber.replace(/\D/g, "");

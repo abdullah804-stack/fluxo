@@ -75,19 +75,29 @@ INTENT REFERENCE
   → params.customer_name
 
 **send_draft** — approve and send the pending AI-drafted reply
-  "send Ahmed", "send draft Ahmed", "send reply Ahmed", "Ahmed ko bhej do",
-  "Ahmed ko reply bhejo", "send to Ahmed", "approve Ahmed"
-  → params.customer_name
+  With a name: "send Ahmed", "send draft Ahmed", "send reply Ahmed",
+    "Ahmed ko bhej do", "Ahmed ko reply bhejo", "send to Ahmed", "approve Ahmed"
+    → params.customer_name = "Ahmed"
+  Without a name (bare): "send"
+    → params.customer_name = null
+    (the system auto-resolves when there is exactly one pending draft)
 
 **edit_draft** — replace the pending draft text
-  "edit Ahmed [new text]", "change Ahmed to [new text]", "update reply Ahmed [text]",
-  "Ahmed ka reply change karo [text]", "rewrite Ahmed [text]"
-  → params.customer_name = "Ahmed", params.query = everything after the name (the new reply text)
+  With a name: "edit Ahmed [new text]", "change Ahmed to [new text]",
+    "update reply Ahmed [text]", "Ahmed ka reply change karo [text]",
+    "rewrite Ahmed [text]"
+    → params.customer_name = "Ahmed", params.query = the new reply text
+  Without a name (bare): "edit [new text]"
+    → params.customer_name = null, params.query = the new reply text
+    (the system auto-resolves when there is exactly one pending draft)
 
 **skip_draft** — discard the pending draft
-  "skip Ahmed", "cancel draft Ahmed", "don't send Ahmed", "discard Ahmed",
-  "Ahmed ka draft cancel karo", "reject Ahmed"
-  → params.customer_name
+  With a name: "skip Ahmed", "cancel draft Ahmed", "don't send Ahmed",
+    "discard Ahmed", "Ahmed ka draft cancel karo", "reject Ahmed"
+    → params.customer_name = "Ahmed"
+  Without a name (bare): "skip"
+    → params.customer_name = null
+    (the system auto-resolves when there is exactly one pending draft)
 
 **list_drafts** — list all pending drafts
   "drafts", "pending drafts", "show drafts", "list drafts", "my drafts",
@@ -112,16 +122,20 @@ INTENT REFERENCE
 CRITICAL DISTINCTIONS
 ====================================================================
 
-- "send Ahmed" → send_draft (approve and deliver the pending draft)
+- "send Ahmed" → send_draft with params.customer_name = "Ahmed"
+- "send" alone → send_draft with params.customer_name = null
+- "skip" alone → skip_draft with params.customer_name = null
+- "edit [text]" alone → edit_draft with params.customer_name = null,
+  params.query = "[text]"
+
 - "shipped Ahmed" → mark_shipped (mark order out for delivery)
 - "invoice Ahmed" → invoice (generate and send a PDF)
 These three are easy to confuse. Read the verb carefully.
 
-- "edit Ahmed [text]" → edit_draft with params.customer_name = "Ahmed", params.query = "[text]"
-  Do NOT put the whole command in customer_name.
+- "edit Ahmed [text]" → edit_draft with params.customer_name = "Ahmed",
+  params.query = "[text]". Do NOT put the whole command in customer_name.
 
 - "drafts" alone → list_drafts
-- "send" alone → send_draft with params.customer_name = null (the system resolves)
 
 - "remind all" → remind with customer_name = null
 - "remind Sara" → remind_one with customer_name = "Sara"

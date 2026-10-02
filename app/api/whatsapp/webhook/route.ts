@@ -1207,14 +1207,40 @@ async function handleCommandInBackground(
         break;
       }
 
-            case "edit_draft": {
-        const name = command.params.customer_name;
+                  case "edit_draft": {
+        let name = command.params.customer_name;
         const newText = (command.params.query || "").trim();
 
+        // No name given → auto-resolve if there's exactly one pending draft
         if (!name) {
-          reply =
-            "Who should I edit? Try *edit Ahmed [new reply text]*.";
-          break;
+          try {
+            const pending = await prisma.pendingDraft.findMany({
+              where: {
+                whatsappAccountId: accountId,
+                status: "pending",
+                expiresAt: { gt: new Date() },
+              },
+              orderBy: { createdAt: "desc" },
+              take: 2,
+            });
+
+            if (pending.length === 0) {
+              reply = "No pending drafts to edit.";
+              break;
+            }
+            if (pending.length > 1) {
+              const list = pending
+                .map((d, i) => `${i + 1}. *${d.customerName || d.customerPhone}*`)
+                .join("\n");
+              reply = `Which draft? Reply *edit [name] [new text]*:\n\n${list}`;
+              break;
+            }
+            name = pending[0].customerName || pending[0].customerPhone;
+          } catch (err) {
+            console.error("[edit-draft] auto-resolve failed:", err);
+            reply = "Failed to edit the draft.";
+            break;
+          }
         }
         if (!newText) {
           reply =
@@ -1271,12 +1297,39 @@ async function handleCommandInBackground(
         break;
       }
 
-      case "skip_draft": {
-        const name = command.params.customer_name;
+            case "skip_draft": {
+        let name = command.params.customer_name;
+
+        // No name given → auto-resolve if there's exactly one pending draft
         if (!name) {
-          reply =
-            "Who should I skip? Try *skip Ahmed* or *skip Sara*.";
-          break;
+          try {
+            const pending = await prisma.pendingDraft.findMany({
+              where: {
+                whatsappAccountId: accountId,
+                status: "pending",
+                expiresAt: { gt: new Date() },
+              },
+              orderBy: { createdAt: "desc" },
+              take: 2,
+            });
+
+            if (pending.length === 0) {
+              reply = "No pending drafts to skip.";
+              break;
+            }
+            if (pending.length > 1) {
+              const list = pending
+                .map((d, i) => `${i + 1}. *${d.customerName || d.customerPhone}*`)
+                .join("\n");
+              reply = `Which draft? Reply *skip [name]*:\n\n${list}`;
+              break;
+            }
+            name = pending[0].customerName || pending[0].customerPhone;
+          } catch (err) {
+            console.error("[skip-draft] auto-resolve failed:", err);
+            reply = "Failed to skip the draft.";
+            break;
+          }
         }
 
         try {
