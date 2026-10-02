@@ -39,12 +39,17 @@ const VALID_INTENTS = [
 ];
 
 export async function parseCommand(text: string): Promise<ParsedCommand> {
-  const raw = await chat({
+    const raw = await chat({
     messages: [
       { role: "system", content: COMMAND_SYSTEM_PROMPT },
       { role: "user", content: buildCommandPrompt(text) },
     ],
     temperature: 0.1,
+    models: [
+      "google/gemma-4-31b-it:free",
+      "qwen/qwen3.8-27b:free",
+      "dots-studio/dots-3-note-preview:free",
+    ],
   });
 
   const cleaned = extractJson(raw);

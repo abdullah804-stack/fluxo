@@ -37,13 +37,18 @@ export async function extractMessage(
   messageText: string,
   businessName: string
 ): Promise<ExtractedMessage> {
-  const raw = await chat({
-    messages: [
-      { role: "system", content: EXTRACTOR_SYSTEM_PROMPT },
-      { role: "user", content: buildExtractorPrompt(messageText, businessName) },
-    ],
-    temperature: 0.1,
-  });
+      const raw = await chat({
+      messages: [
+        { role: "system", content: EXTRACTOR_SYSTEM_PROMPT },
+        { role: "user", content: buildExtractorPrompt(messageText, businessName) },
+      ],
+      temperature: 0.1,
+      models: [
+        "google/gemma-4-31b-it:free",
+        "qwen/qwen3.8-27b:free",
+        "dots-studio/dots-3-note-preview:free",
+      ],
+    });
 
   const cleaned = extractJson(raw);
 
